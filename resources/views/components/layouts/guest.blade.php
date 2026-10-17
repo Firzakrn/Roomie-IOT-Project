@@ -24,7 +24,7 @@
             <a href="{{ route('login') }}"
                class="inline-flex items-center gap-3 self-start rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
                 <span class="flex shrink-0 items-center justify-center text-white">
-                    <x-ui.brand :size="26" />
+                    <x-ui.brand :size="30" />
                 </span>
                 <span>
                     <span class="block text-[15px] font-bold tracking-tight text-white">Roomie</span>
@@ -64,7 +64,7 @@
                 <a href="{{ route('login') }}"
                    class="mb-8 inline-flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 lg:hidden">
                     <span class="flex shrink-0 items-center justify-center text-indigo-600 dark:text-indigo-400 lg:hidden">
-                        <x-ui.brand :size="24" />
+                        <x-ui.brand :size="26" />
                     </span>
                     <span class="text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
                 </a>

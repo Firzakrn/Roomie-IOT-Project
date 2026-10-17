@@ -48,7 +48,7 @@
                 {{-- No chip behind the mark: the solid glyph carries itself, and a tile here
                      would only put a second shape next to the wordmark. --}}
                 <span class="flex shrink-0 items-center justify-center text-indigo-600 dark:text-indigo-400">
-                    <x-ui.brand :size="24" />
+                    <x-ui.brand :size="26" />
                 </span>
                 <span class="roomie-brand-text min-w-0">
                     <span class="block truncate text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
@@ -98,7 +98,7 @@
                 <a href="{{ route('dashboard') }}"
                    class="flex min-w-0 items-center gap-2 lg:hidden">
                     <span class="flex shrink-0 items-center justify-center text-indigo-600 dark:text-indigo-400">
-                        <x-ui.brand :size="20" />
+                        <x-ui.brand :size="22" />
                     </span>
                     <span class="truncate text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
                 </a>
