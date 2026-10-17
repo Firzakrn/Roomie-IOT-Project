@@ -201,7 +201,9 @@
                                 @if ($room['availability'] === 'available')
                                     <a href="#reservasi-{{ $room['code'] }}" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-roomie-blue px-3.5 text-xs font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roomie-blue focus-visible:ring-offset-2">Reservasi</a>
                                 @else
-                                    <a href="#detail-{{ $room['code'] }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-roomie-line bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roomie-blue focus-visible:ring-offset-2">Lihat detail</a>
+                                    <button onclick="openModal('{{ $room['code'] }}')" type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-roomie-line bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roomie-blue focus-visible:ring-offset-2">
+                                        Lihat detail
+                                    </button>
                                 @endif
                             </div>
                         </article>
@@ -214,6 +216,7 @@
             </div>
         </section>
     </main>
+    <div id="room-modal-container"></div>
     <script>
         function simulateScan() {
             // Munculkan dialog untuk memasukkan token
@@ -224,6 +227,64 @@
                 // Arahkan ke rute ScanController yang sudah kita buat tadi
                window.location.href = "/Roomie/public/scan/" + token.trim();
             }
+        }
+
+        let countdownInterval;
+
+        async function openModal(roomCode) {
+            const modalContainer = document.getElementById('room-modal-container');
+            const detailUrlTemplate = @json(route('room.detail-modal', ['code' => '__ROOM_CODE__']));
+
+            try {
+                const response = await fetch(detailUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(roomCode)));
+                if (!response.ok) throw new Error('Detail ruangan gagal dimuat.');
+
+                modalContainer.innerHTML = await response.text();
+                const modal = document.getElementById('room-modal');
+                modal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+                startCountdown();
+            } catch (error) {
+                console.error(error);
+                alert('Detail ruangan gagal dimuat. Coba lagi.');
+            }
+        }
+
+        function startCountdown() {
+            const timerDisplay = document.getElementById('countdown-timer');
+            if (!timerDisplay) return;
+
+            clearInterval(countdownInterval);
+            const endTime = new Date(timerDisplay.dataset.endAt).getTime();
+
+            function updateCountdown() {
+                const distance = endTime - Date.now();
+                if (distance <= 0) {
+                    timerDisplay.textContent = 'WAKTU HABIS';
+                    clearInterval(countdownInterval);
+                    return;
+                }
+
+                const hours = Math.floor(distance / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                timerDisplay.textContent = [hours, minutes, seconds]
+                    .map(value => String(value).padStart(2, '0'))
+                    .join(':');
+            }
+
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('room-modal');
+
+            if (!modal) return;
+
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            clearInterval(countdownInterval);
         }
     </script>
 </body>

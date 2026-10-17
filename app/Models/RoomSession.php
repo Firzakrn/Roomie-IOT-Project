@@ -32,4 +32,9 @@ class RoomSession extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    protected $casts = [
+        'checked_in_at' => 'datetime',
+        'checked_out_at' => 'datetime',
+    ];
 }

@@ -45,6 +45,21 @@ class DashboardController extends Controller
         ));
     }
 
+    public function getRoomModal(string $code)
+    {
+        $room = Room::where('code', $code)->firstOrFail();
+        $now = Carbon::now();
+
+        $reservation = Reservation::with('user')
+            ->where('room_id', $room->id)
+            ->where('status', 'CONFIRMED')
+            ->where('start_at', '<=', $now)
+            ->where('end_at', '>=', $now)
+            ->first();
+
+        return view('components.room-modal', compact('room', 'reservation'));
+    }
+
     public function handleScan($token)
     {
         // 1. Cari ruangan yang qr_token-nya cocok dengan hasil scan

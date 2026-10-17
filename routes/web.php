@@ -3,17 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
-
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/scan/{token}', [DashboardController::class, 'handleScan'])->name('scan.handle');
-Route::post('/reservasi', [App\Http\Controllers\DashboardController::class, 'storeReservation'])->name('reservation.store');
+Route::post('/reservasi', [DashboardController::class, 'storeReservation'])->name('reservation.store');
+Route::get('/room/{code}/detail-modal', [DashboardController::class, 'getRoomModal'])->name('room.detail-modal');
