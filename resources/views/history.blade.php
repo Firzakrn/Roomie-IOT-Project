@@ -1,34 +1,120 @@
-<!doctype html>
-<html lang="id">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Riwayat Penggunaan Kelas · Roomie</title><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="min-h-screen bg-slate-50 p-4 text-slate-800 sm:p-8">
-<main class="mx-auto max-w-5xl">
-<nav class="mb-6 flex items-center justify-between gap-4"><a href="{{ route('dashboard') }}" class="font-bold text-blue-700">← Dashboard</a><a href="{{ route('scanner') }}" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white">Scan QR</a></nav>
-<h1 class="text-3xl font-bold">Riwayat Penggunaan Kelas</h1><p class="mt-1 text-sm text-slate-500">Waktu masuk dan keluar otomatis dicatat dari scan QR. Tidak ada booking di muka.</p>
-<div class="mt-6 grid gap-4">
-@forelse($reservations as $record)
-  @php
-    $session = $record->roomSession;
-    $oldBooking = !$session;
-    $expired = $session && $session->status === 'ACTIVE' && $record->end_at->lte(now());
-    $isActive = $session && $session->status === 'ACTIVE' && !$expired;
-    $state = $oldBooking ? 'Data reservasi lama' : ($expired || $session->status === 'EXPIRED' ? 'Melewati batas waktu' : ($isActive ? 'Sedang dipakai' : 'Selesai'));
-  @endphp
-  <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-    <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="text-xs font-semibold uppercase tracking-wide text-blue-700">{{ $record->room?->code ?? '-' }}</p><h2 class="mt-1 text-lg font-bold">{{ $record->room?->name ?? 'Ruangan terhapus' }}</h2><p class="mt-1 text-sm text-slate-500">{{ $record->course_name }} · {{ $record->sks }} SKS</p></div>
-    <span class="rounded-full px-3 py-1 text-xs font-bold {{ $isActive ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-700' }}">{{ $state }}</span></div>
-    <p class="mt-4 text-sm font-medium">@if($session)Check-in {{ $session->checked_in_at?->format('d M Y H:i') ?? '-' }} WIB @else Jadwal lama: {{ $record->start_at->format('d M Y H:i') }} WIB @endif</p>
-    @if($session)<p class="mt-1 text-sm text-slate-500">Check-out {{ $session->checked_out_at?->format('d M Y H:i') ?? ($expired ? 'Otomatis selesai (batas waktu)' : 'Belum check-out') }} WIB</p>@endif
-    @if($session && $record->start_at)
-      <p class="mt-1 text-sm text-slate-500">Durasi kuliah {{ $record->sks * (int) config('roomie.minutes_per_sks', 50) }} menit + tambahan {{ (int) config('roomie.grace_minutes', 60) }} menit; batas penggunaan {{ $record->end_at->format('d M Y H:i') }} WIB</p>
+{{--
+    Riwayat penggunaan (BAP logs) for the signed-in user only.
+
+    The state derivation below is unchanged from the previous version: it encodes
+    domain meaning (an ACTIVE session past end_at is expired, not in progress,
+    and a reservation with no session predates the scan flow). Only the
+    presentation is new — a real table on wide screens, stacked rows on mobile,
+    short badge labels, and pagination matching the rest of the app.
+
+    No booking exists: a reservation is a usage log written by check-in.
+--}}
+<x-layouts.app title="Riwayat Penggunaan · Roomie"
+               description="Riwayat check-in dan check-out ruang kelas yang dicatat dari pemindaian QR.">
+
+    <x-layouts.page-header title="Riwayat penggunaan"
+                       description="Waktu masuk dan keluar dicatat otomatis dari scan QR di pintu kelas. Tidak ada pemesanan jarak jauh." />
+
+    @forelse ($reservations as $record)
+        @php
+            $session = $record->roomSession;
+            $legacy = !$session;
+            $expired = $session && $session->status === 'ACTIVE' && $record->end_at->lte(now());
+            $isActive = $session && $session->status === 'ACTIVE' && !$expired;
+
+            // Short badge labels (uppercase badges cannot afford long sentences);
+            // the full sentence lives in the row for assistive tech.
+            $badgeState = $legacy ? 'unknown' : ($expired || $session->status === 'EXPIRED' ? 'occupied' : ($isActive ? 'info' : 'available'));
+            $badgeLabel = $legacy ? 'Lama' : ($expired || $session->status === 'EXPIRED' ? 'Terlambat' : ($isActive ? 'Aktif' : 'Selesai'));
+
+            $minutes = $record->sks * (int) config('roomie.minutes_per_sks', 50);
+        @endphp
+
+        <article class="mt-3.5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-tile dark:border-slate-800 dark:bg-roomie-surface">
+            <div class="flex flex-wrap items-start justify-between gap-3 p-5">
+                <div class="min-w-0">
+                    <p class="font-mono text-xs font-semibold text-indigo-700 dark:text-indigo-300">{{ $record->room?->code ?? '-' }}</p>
+                    <h2 class="mt-1 truncate text-[15px] font-semibold text-slate-900 dark:text-slate-50">
+                        {{ $record->room?->name ?? 'Ruangan terhapus' }}
+                    </h2>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {{ $record->course_name }} · {{ $record->sks }} SKS
+                    </p>
+                </div>
+
+                <div class="flex flex-col items-start gap-2 sm:items-end">
+                    <x-ui.badge :state="$badgeState">{{ $badgeLabel }}</x-ui.badge>
+                    <span class="sr-only">
+                        @if ($legacy)
+                            Data reservasi lama tanpa sesi pemindaian.
+                        @elseif ($expired || $session->status === 'EXPIRED')
+                            Melewati batas waktu pemakaian.
+                        @elseif ($isActive)
+                            Sedang dipakai.
+                        @else
+                            Selesai.
+                        @endif
+                    </span>
+                </div>
+            </div>
+
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 px-5 py-4 text-sm sm:grid-cols-4 dark:border-slate-800">
+                <div>
+                    <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Check-in</dt>
+                    <dd class="mt-1 font-mono text-xs tabular-nums text-slate-700 dark:text-slate-200">
+                        @if ($session)
+                            {{ $session->checked_in_at?->format('d M Y H:i') ?? '-' }} WIB
+                        @else
+                            Jadwal lama {{ $record->start_at->format('d M Y H:i') }} WIB
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Check-out</dt>
+                    <dd class="mt-1 font-mono text-xs tabular-nums text-slate-700 dark:text-slate-200">
+                        @if ($session)
+                            {{ $session->checked_out_at?->format('d M Y H:i') ?? ($expired ? 'Otomatis (batas waktu)' : 'Belum check-out') }}
+                        @else
+                            —
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Durasi kuliah</dt>
+                    <dd class="mt-1 font-mono text-xs tabular-nums text-slate-700 dark:text-slate-200">{{ $minutes }} menit</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Batas penggunaan</dt>
+                    <dd class="mt-1 font-mono text-xs tabular-nums text-slate-700 dark:text-slate-200">
+                        @if ($session && $record->start_at)
+                            {{ $record->end_at->format('d M Y H:i') }} WIB
+                        @else
+                            —
+                        @endif
+                    </dd>
+                </div>
+            </dl>
+
+            @if ($isActive)
+                <p class="flex items-start gap-2.5 border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-xs leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
+                    <x-ui.icon name="info" :size="15" class="mt-px shrink-0 text-indigo-500" />
+                    Scan QR yang sama lagi untuk check-out lebih awal. Jika waktu habis, kelas otomatis tersedia kembali.
+                </p>
+            @endif
+        </article>
+    @empty
+        <div class="mt-6">
+            <x-ui.empty title="Belum ada riwayat"
+                        body="Datang ke kelas, scan QR yang ditempel di pintu, lalu isi mata kuliah dan SKS untuk check-in."
+                        icon="history">
+                <x-ui.button href="{{ route('scanner') }}" variant="primary" size="md" icon="camera">Buka scanner</x-ui.button>
+            </x-ui.empty>
+        </div>
+    @endforelse
+
+    @if ($reservations->hasPages())
+        <div class="mt-6">
+            {{ $reservations->links() }}
+        </div>
     @endif
-    @if($isActive)<p class="mt-3 text-sm font-semibold text-blue-700">Scan QR yang sama lagi untuk check-out lebih awal. Jika waktu habis, kelas otomatis tersedia.</p>@endif
-  </article>
-@empty
-  <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><p class="text-lg font-bold">Belum ada riwayat</p><p class="mt-2 text-sm text-slate-500">Datang ke kelas, scan QR yang ditempel di pintu, lalu isi mata kuliah dan SKS untuk check-in.</p></div>
-@endforelse
-</div>
-<div class="mt-6">{{ $reservations->links() }}</div>
-</main>
-</body>
-</html>
+</x-layouts.app>

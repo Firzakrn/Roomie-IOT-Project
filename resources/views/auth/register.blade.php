@@ -1,16 +1,59 @@
-@extends('auth.layout')
-@section('title', 'Daftar')
-@section('content')
-  <h1 class="text-2xl font-bold">Buat akun Roomie ✨</h1>
-  <p class="mb-6 mt-1 text-sm text-slate-500">Daftar sebagai mahasiswa untuk mulai reservasi.</p>
-  @if($errors->any())<div role="alert" class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"><ul class="list-inside list-disc">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-  <form method="POST" action="{{ route('register.store') }}" class="space-y-4">
-    @csrf
-    <div><label for="name" class="mb-1.5 block text-sm font-semibold">Nama lengkap</label><input id="name" name="name" value="{{ old('name') }}" autocomplete="name" maxlength="255" required class="w-full rounded-xl border border-slate-300 p-3 focus:border-blue-500" placeholder="Nama mahasiswa"></div>
-    <div><label for="email" class="mb-1.5 block text-sm font-semibold">Email</label><input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required class="w-full rounded-xl border border-slate-300 p-3 focus:border-blue-500" placeholder="nama@kampus.ac.id"></div>
-    <div><label for="password" class="mb-1.5 block text-sm font-semibold">Kata sandi (minimal 8 karakter)</label><input id="password" type="password" name="password" autocomplete="new-password" minlength="8" required class="w-full rounded-xl border border-slate-300 p-3 focus:border-blue-500"></div>
-    <div><label for="password_confirmation" class="mb-1.5 block text-sm font-semibold">Ulangi kata sandi</label><input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" minlength="8" required class="w-full rounded-xl border border-slate-300 p-3 focus:border-blue-500"></div>
-    <button class="w-full rounded-xl bg-blue-600 py-3 font-bold text-white hover:bg-blue-700">Buat Akun</button>
-  </form>
-  <p class="mt-6 text-center text-sm text-slate-600">Sudah punya akun? <a href="{{ route('login') }}" class="font-bold text-blue-700 hover:underline">Masuk</a></p>
-@endsection
+{{--
+    Sign-up.
+
+    Role is never a form field: AuthController always writes `mahasiswa`
+    (AGENTS.md), so the form does not pretend otherwise.
+--}}
+<x-layouts.guest title="Daftar · Roomie">
+
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Buat akun</h1>
+    <p class="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+        Akun baru terdaftar sebagai mahasiswa. Peran lain diatur administrator.
+    </p>
+
+    @if ($errors->any())
+        <div tabindex="-1" data-error-summary
+             class="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-4 focus-visible:outline-none dark:border-rose-500/40 dark:bg-rose-500/10">
+            <p class="flex items-center gap-2 text-sm font-semibold text-rose-800 dark:text-rose-200">
+                <x-ui.icon name="alert-triangle" :size="16" />
+                Periksa kembali isian berikut
+            </p>
+            <ul class="mt-2 list-disc space-y-1 pl-6 text-sm leading-relaxed text-rose-700 dark:text-rose-300">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('register.store') }}" class="mt-6 space-y-4">
+        @csrf
+
+        <x-ui.field name="name" label="Nama lengkap" :autofocus="true" :maxlength="255"
+                   autocomplete="name"
+                   placeholder="Nama mahasiswa" />
+
+        <x-ui.field name="email" label="Email" type="email" :maxlength="255"
+                   autocomplete="email"
+                   placeholder="nama@kampus.ac.id" />
+
+        <x-ui.field name="password" label="Kata sandi" type="password" :minlength="8"
+                   autocomplete="new-password"
+                   hint="Minimal 8 karakter." />
+
+        <x-ui.field name="password_confirmation" label="Ulangi kata sandi" type="password" :minlength="8"
+                   autocomplete="new-password" />
+
+        <x-ui.button type="submit" size="lg" class="w-full">Buat akun</x-ui.button>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+        Sudah punya akun?
+        <a href="{{ route('login') }}"
+           class="rounded font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200">Masuk</a>
+    </p>
+
+    <script>
+        document.querySelector('[data-error-summary]')?.focus();
+    </script>
+</x-layouts.guest>

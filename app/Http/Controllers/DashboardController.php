@@ -6,40 +6,86 @@ use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\RoomSession;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class DashboardController extends Controller
 {
+    /**
+     * Dua dari tiga syarat "ruangan terpakai" (lihat AGENTS.md).
+     *
+     * Syarat pertama (sesi berstatus ACTIVE) selalu ditulis di query induknya.
+     * Faktor di sini dipakai oleh SETIAP query pemakaian supaya tidak ada satu
+     * tempat yang memutuskan "terpakai" dengan definisi sendiri.
+     */
+    private function reservationStillLive(Builder $query, Carbon $now): Builder
+    {
+        return $query->where('status', 'CONFIRMED')
+            ->where('end_at', '>', $now);
+    }
+
     private function activeSessionQuery(Room $room, Carbon $now)
     {
         return RoomSession::where('room_id', $room->id)
             ->where('status', 'ACTIVE')
-            ->whereHas('reservation', function ($query) use ($now) {
-                $query->where('status', 'CONFIRMED')
-                    ->where('end_at', '>', $now);
-            });
+            ->whereHas('reservation', fn ($query) => $this->reservationStillLive($query, $now));
     }
 
-    private function roomSnapshot(Room $room, Carbon $now): array
+    /**
+     * Versi batch dari activeSessionQuery() untuk daftar semua ruangan.
+     *
+     * Dipakai dashboard karena /rooms/live dipanggil ulang tiap 10 detik per
+     * pengguna; satu query per ruangan akan jadi N+1. Syarat pemakaiannya
+     * persis sama, hanya dieksekusi dalam satu kali ambil data.
+     *
+     * @return \Illuminate\Support\Collection<int, RoomSession> diindex room_id
+     */
+    private function activeSessionsByRoom(array $roomIds, Carbon $now)
     {
-        $occupied = $this->activeSessionQuery($room, $now)->exists();
+        return RoomSession::with('reservation.user')
+            ->whereIn('room_id', $roomIds)
+            ->where('status', 'ACTIVE')
+            ->whereHas('reservation', fn ($query) => $this->reservationStillLive($query, $now))
+            ->get()
+            ->keyBy('room_id');
+    }
 
-        $fresh = $room->sensor_updated_at &&
-            $room->sensor_updated_at->greaterThan(
-                $now->copy()->subSeconds(90)
-            );
+    /**
+     * Satu potret ruangan untuk kartu dashboard dan endpoint /rooms/live.
+     *
+     * `building` dan `floor` dikembalikan terpisah (bukan string gabungan)
+     * supaya filter dashboard bisa mengelompokkan menurut data asli, sementara
+     * `location` tetap menyediakan teks siap tampil.
+     */
+    private function roomSnapshot(Room $room, Carbon $now, ?RoomSession $session = null): array
+    {
+        $fresh = (bool) ($room->sensor_updated_at && $room->sensor_updated_at->greaterThan(
+            $now->copy()->subSeconds(90)
+        ));
+
+        $reservation = $session?->reservation;
 
         return [
             'code' => $room->code,
             'name' => $room->name,
-            'building' => 'Gedung ' . $room->building .
-                ' · Lantai ' . $room->floor,
-            'availability' => $occupied ? 'occupied' : 'available',
-            'sensor' => $fresh
-                ? ($room->sensor_status ?? 'UNKNOWN')
-                : 'UNKNOWN',
+            'building' => $room->building,
+            'floor' => $room->floor,
+            'capacity' => $room->capacity,
+            'location' => 'Gedung '.($room->building ?? '-').
+                ' · Lantai '.($room->floor ?? '-'),
+            'availability' => $session ? 'occupied' : 'available',
+            'sensor' => $fresh ? ($room->sensor_status ?? 'UNKNOWN') : 'UNKNOWN',
+            'sensor_fresh' => $fresh,
             'updated' => $room->sensor_updated_at
                 ? $room->sensor_updated_at->diffForHumans()
                 : 'Belum ada data',
+            'session' => $reservation ? [
+                'course' => $reservation->course_name,
+                'sks' => (int) $reservation->sks,
+                'owner' => $session->user?->name,
+                'start' => $reservation->start_at?->toIso8601String(),
+                'end' => $reservation->end_at?->toIso8601String(),
+                'mine' => (bool) ($session->user_id === auth()->id()),
+            ] : null,
         ];
     }
 
@@ -47,12 +93,15 @@ class DashboardController extends Controller
     {
         $now = now();
 
-        return Room::where('is_active', true)
-            ->orderBy('code')
-            ->get()
-            ->map(fn (Room $room) =>
-                $this->roomSnapshot($room, $now)
-            );
+        $rooms = Room::where('is_active', true)->orderBy('code')->get();
+
+        $sessions = $this->activeSessionsByRoom($rooms->modelKeys(), $now);
+
+        return $rooms->map(fn (Room $room) => $this->roomSnapshot(
+            $room,
+            $now,
+            $sessions->get($room->id)
+        ));
     }
 
     public function index()
@@ -103,51 +152,50 @@ class DashboardController extends Controller
     }
 
     // Menampilkan hasil scan tanpa membuat reservasi
-public function scanResult(string $code)
-{
-    // Mengenali kelas dari hasil scan QR
-    $room = Room::where('code', $code)
-        ->where('is_active', true)
-        ->firstOrFail();
+    public function scanResult(string $code)
+    {
+        // Mengenali kelas dari hasil scan QR
+        $room = Room::where('code', $code)
+            ->where('is_active', true)
+            ->firstOrFail();
 
-    $now = now();
+        $now = now();
 
-    // Mengecek apakah kelas sedang digunakan
-    $activeSession = $this->activeSessionQuery($room, $now)
-        ->with(['reservation', 'user'])
-        ->first();
+        // Mengecek apakah kelas sedang digunakan
+        $activeSession = $this->activeSessionQuery($room, $now)
+            ->with(['reservation', 'user'])
+            ->first();
 
-    // Mengecek apakah pengguna adalah pemilik sesi
-    $mine = $activeSession &&
-        $activeSession->user_id === auth()->id();
+        // Mengecek apakah pengguna adalah pemilik sesi
+        $mine = $activeSession &&
+            $activeSession->user_id === auth()->id();
 
-    // Mengambil bukti scan QR dari session Laravel
-    $pending = session('roomie_pending_scan');
+        // Mengambil bukti scan QR dari session Laravel
+        $pending = session('roomie_pending_scan');
 
-    // Form hanya muncul setelah scan QR yang valid
-    // dan ketika kelas belum digunakan
-    $showCheckinForm = !$activeSession
-        && is_array($pending)
-        && ($pending['room_id'] ?? null) == $room->id
-        && ($pending['user_id'] ?? null) == auth()->id()
-        && ($pending['expires_at'] ?? 0) >= now()->timestamp;
+        // Form hanya muncul setelah scan QR yang valid
+        // dan ketika kelas belum digunakan
+        $showCheckinForm = ! $activeSession
+            && is_array($pending)
+            && ($pending['room_id'] ?? null) == $room->id
+            && ($pending['user_id'] ?? null) == auth()->id()
+            && ($pending['expires_at'] ?? 0) >= now()->timestamp;
 
-    // Mengirim seluruh variabel ke halaman Blade
-    return view('scan-result', compact(
-        'room',
-        'activeSession',
-        'mine',
-        'showCheckinForm'
-    ));
-}
-
+        // Mengirim seluruh variabel ke halaman Blade
+        return view('scan-result', compact(
+            'room',
+            'activeSession',
+            'mine',
+            'showCheckinForm'
+        ));
+    }
 
     // Riwayat penggunaan ruangan
     public function history()
     {
         $reservations = Reservation::with([
             'room',
-            'roomSession'
+            'roomSession',
         ])
             ->where('user_id', auth()->id())
             ->orderByDesc('start_at')
