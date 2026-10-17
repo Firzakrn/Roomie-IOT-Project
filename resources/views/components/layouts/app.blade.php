@@ -45,8 +45,10 @@
         <div class="flex h-16 shrink-0 items-center gap-3 px-5">
             <a href="{{ route('dashboard') }}"
                class="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-roomie-surface">
-                <span class="flex size-9 shrink-0 items-center justify-center rounded-[13px] bg-indigo-600 text-white">
-                    <x-ui.brand :size="19" />
+                {{-- No chip behind the mark: the solid glyph carries itself, and a tile here
+                     would only put a second shape next to the wordmark. --}}
+                <span class="flex shrink-0 items-center justify-center text-indigo-600 dark:text-indigo-400">
+                    <x-ui.brand :size="24" />
                 </span>
                 <span class="roomie-brand-text min-w-0">
                     <span class="block truncate text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
@@ -95,8 +97,8 @@
 
                 <a href="{{ route('dashboard') }}"
                    class="flex min-w-0 items-center gap-2 lg:hidden">
-                    <span class="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-indigo-600 text-white">
-                        <x-ui.brand :size="17" />
+                    <span class="flex shrink-0 items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <x-ui.brand :size="20" />
                     </span>
                     <span class="truncate text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
                 </a>

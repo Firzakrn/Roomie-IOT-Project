@@ -23,8 +23,8 @@
         <section class="hidden flex-col justify-between bg-slate-900 p-10 text-slate-300 lg:flex dark:bg-roomie-surface">
             <a href="{{ route('login') }}"
                class="inline-flex items-center gap-3 self-start rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-                <span class="flex size-10 items-center justify-center rounded-[14px] bg-indigo-600 text-white">
-                    <x-ui.brand :size="21" />
+                <span class="flex shrink-0 items-center justify-center text-white">
+                    <x-ui.brand :size="26" />
                 </span>
                 <span>
                     <span class="block text-[15px] font-bold tracking-tight text-white">Roomie</span>
@@ -63,8 +63,8 @@
             <main id="main" class="mx-auto w-full max-w-sm">
                 <a href="{{ route('login') }}"
                    class="mb-8 inline-flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 lg:hidden">
-                    <span class="flex size-10 items-center justify-center rounded-[14px] bg-indigo-600 text-white lg:hidden">
-                        <x-ui.brand :size="21" />
+                    <span class="flex shrink-0 items-center justify-center text-indigo-600 dark:text-indigo-400 lg:hidden">
+                        <x-ui.brand :size="24" />
                     </span>
                     <span class="text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
                 </a>
