@@ -106,14 +106,28 @@
                      aria-live="polite">
                     <p class="text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">Perhitungan waktu</p>
 
+                    {{-- Lecture time and the 60-minute tolerance, drawn to scale. --}}
+                    <div class="scan-window mt-3" role="img" aria-label="Perbandingan durasi kuliah dan toleransi"
+                         id="window-bar">
+                        <span class="scan-window__segment scan-window__segment--lecture" id="window-lecture" style="flex-grow: 0"></span>
+                        <span class="scan-window__segment scan-window__segment--grace" id="window-grace" style="flex-grow: 0"></span>
+                    </div>
+
+                    <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium">
+                        <span class="inline-flex items-center gap-1.5 text-indigo-900/70 dark:text-indigo-100/70">
+                            <span class="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400" aria-hidden="true"></span>
+                            <span id="lecture-legend">Kuliah</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 text-indigo-900/70 dark:text-indigo-100/70">
+                            <span class="size-2 rounded-full bg-amber-500 dark:bg-amber-400" aria-hidden="true"></span>
+                            Toleransi <span class="font-mono font-semibold">{{ (int) config('roomie.grace_minutes', 60) }} menit</span>
+                        </span>
+                    </div>
+
                     <dl class="mt-3 space-y-1.5 text-sm">
                         <div class="flex justify-between gap-4">
                             <dt class="text-indigo-900/80 dark:text-indigo-100/80">Durasi perkuliahan</dt>
                             <dd class="font-semibold tabular-nums text-indigo-900 dark:text-indigo-100" id="class-minutes">—</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-indigo-900/80 dark:text-indigo-100/80">Toleransi tambahan</dt>
-                            <dd class="font-semibold tabular-nums text-indigo-900 dark:text-indigo-100">{{ (int) config('roomie.grace_minutes', 60) }} menit</dd>
                         </div>
                         <div class="flex justify-between gap-4 border-t border-indigo-200/70 pt-2 dark:border-indigo-400/25">
                             <dt class="font-semibold text-indigo-900 dark:text-indigo-100">Total penggunaan</dt>
@@ -121,7 +135,7 @@
                         </div>
                     </dl>
 
-                    <p class="mt-3 text-xs leading-relaxed text-indigo-900/70 dark:text-indigo-100/70">
+                    <p class="mt-3 text-xs leading-relaxed text-indigo-900/70 dark:text-indigo-100/70" id="window-note">
                         Waktu mulai dihitung saat tombol ditekan dan batas akhirnya ditetapkan server.
                     </p>
                 </div>
@@ -205,8 +219,23 @@
 
         const classMinutes = document.getElementById('class-minutes');
         const totalMinutes = document.getElementById('total-minutes');
+        const windowLecture = document.getElementById('window-lecture');
+        const windowGrace = document.getElementById('window-grace');
+        const lectureLegend = document.getElementById('lecture-legend');
+        const windowNote = document.getElementById('window-note');
+        const windowBar = document.getElementById('window-bar');
         const submit = form.querySelector('[data-submit]');
         const submitLabel = form.querySelector('[data-submit-label]');
+
+        const pad2 = (value) => String(value).padStart(2, '0');
+        const clockNow = () => {
+            const d = new Date();
+            return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+        };
+        const clockAt = (minutes) => {
+            const d = new Date(Date.now() + minutes * 60000);
+            return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+        };
 
         const selected = () => form.querySelector('input[name="sks"]:checked');
 
@@ -233,6 +262,12 @@
             if (!sks) {
                 classMinutes.textContent = '—';
                 totalMinutes.textContent = 'Pilih SKS';
+                windowLecture.style.flexGrow = '0';
+                windowGrace.style.flexGrow = '0';
+                lectureLegend.textContent = 'Kuliah';
+                windowNote.textContent =
+                    'Waktu mulai dihitung saat tombol ditekan dan batas akhirnya ditetapkan server.';
+                windowBar.setAttribute('aria-label', 'Perbandingan durasi kuliah dan toleransi');
                 return;
             }
 
@@ -241,6 +276,18 @@
 
             classMinutes.textContent = lecture + ' menit';
             totalMinutes.textContent = total + ' menit (' + Math.floor(total / 60) + ' jam ' + (total % 60) + ' menit)';
+
+            // Proportional, so the tolerance visibly shrinks as SKS grows.
+            windowLecture.style.flexGrow = String(lecture);
+            windowGrace.style.flexGrow = String(graceMinutes);
+
+            lectureLegend.textContent = lecture + ' menit kuliah';
+            windowNote.textContent = 'Sekitar ' + clockNow() + ' sampai ' + clockAt(total) +
+                ' WIB, tergantung kapan tombol ditekan.';
+            windowBar.setAttribute(
+                'aria-label',
+                'Durasi kuliah ' + lecture + ' menit, toleransi ' + graceMinutes + ' menit, total ' + total + ' menit'
+            );
         };
 
         form.addEventListener('change', (event) => {

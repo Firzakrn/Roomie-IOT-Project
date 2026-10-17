@@ -31,6 +31,14 @@
         color: #FFFFFF;
     }
 
+    /* Tailwind display utilities (.grid, .flex) out-specify the UA stylesheet's
+       `[hidden] { display: none }`, so an element carrying both stayed visible —
+       e.g. the scanner's success flash rendered on top of an error state.
+       `hidden` has to win, everywhere, always. */
+    [hidden] {
+        display: none !important;
+    }
+
     /* ---------- Skip link ---------- */
     .skip-link {
         position: absolute;
@@ -348,20 +356,89 @@
         to   { opacity: 1; transform: none; }
     }
 
-    /* ---------- Scanner viewport ---------- */
+    /* ---------- Scanner viewport ----------
+       html5-qrcode injects its own <video> (and a shaded-region canvas) with
+       inline sizes, so utilities on the wrapper lose to them. The library's DOM
+       is therefore targeted directly.
+
+       The frame deliberately does NOT force a square. A 4:3 camera stream in a
+       1:1 box leaves an empty band under the picture, and object-fit:cover
+       hides even more of the QR. Letting the video define the height shows the
+       whole frame and leaves no dead space; the reticle adapts to whatever
+       aspect the device reports. */
+    #reader,
+    #reader video {
+        width: 100%;
+    }
+
+    #reader video {
+        height: auto;
+        display: block;
+    }
+
+    /* The library's shaded region is a second, competing aim guide drawn at
+       roughly the right place — two guides at once is clutter, not help. The
+       reticle below is the single one. */
+    #reader canvas {
+        display: none;
+    }
+
+    .roomie-scanframe {
+        background: #020617;
+    }
+    .roomie-scanframe[data-camera="off"] {
+        aspect-ratio: 1 / 1;
+    }
+
+    /* Square corner brackets that frame the scan area, inset so they trace the
+       same region the decoder is told to look at. */
+    .roomie-reticle {
+        position: absolute;
+        inset: 15%;
+    }
+
     .roomie-corner {
         position: absolute;
         width: 34px;
         height: 34px;
-        border: 2px solid #4F46E5;
-        border-radius: 8px;
+        border: 2px solid #6366F1;
+        border-radius: 10px;
     }
+    .roomie-corner--tl {
+        left: -2px;
+        top: -2px;
+        border-right: 0;
+        border-bottom: 0;
+        border-radius: 10px 0 0 0;
+    }
+    .roomie-corner--tr {
+        right: -2px;
+        top: -2px;
+        border-left: 0;
+        border-bottom: 0;
+        border-radius: 0 10px 0 0;
+    }
+    .roomie-corner--bl {
+        left: -2px;
+        bottom: -2px;
+        border-right: 0;
+        border-top: 0;
+        border-radius: 0 0 0 10px;
+    }
+    .roomie-corner--br {
+        right: -2px;
+        bottom: -2px;
+        border-left: 0;
+        border-top: 0;
+        border-radius: 0 0 10px 0;
+    }
+
     .roomie-laser {
         position: absolute;
         inset-inline: 10px;
         height: 2px;
         border-radius: 9999px;
-        background: linear-gradient(90deg, transparent, #4F46E5 18%, #4F46E5 82%, transparent);
+        background: linear-gradient(90deg, transparent, #6366F1 18%, #6366F1 82%, transparent);
         animation: roomie-scan 2.4s cubic-bezier(.45, 0, .55, 1) infinite;
     }
     @keyframes roomie-scan {
@@ -376,6 +453,60 @@
         20%, 80% { transform: translateX(4px); }
         30%, 50%, 70% { transform: translateX(-6px); }
         40%, 60% { transform: translateX(6px); }
+    }
+
+    /* Success flash before the form hands off to the server: a decode that
+       looks instant gives the user no confirmation at all. */
+    .roomie-flash {
+        animation: roomie-flash-in .28s cubic-bezier(.2, .8, .3, 1);
+    }
+    @keyframes roomie-flash-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    .roomie-flash__mark {
+        animation: roomie-flash-mark .32s cubic-bezier(.2, .9, .3, 1);
+    }
+    @keyframes roomie-flash-mark {
+        from { opacity: 0; transform: scale(.7); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ---------- Scan window preview ----------
+       Two segments: lecture time and the 60-minute tolerance, drawn to scale. */
+    .scan-window {
+        display: flex;
+        gap: 2px;
+        height: 8px;
+        border-radius: 9999px;
+        overflow: hidden;
+    }
+    .scan-window__segment {
+        height: 100%;
+        border-radius: 9999px;
+        transition: flex-grow .2s ease;
+    }
+    .scan-window__segment--lecture {
+        background: #4F46E5;
+    }
+    .scan-window__segment--grace {
+        background: #F59E0B;
+    }
+    html.dark .scan-window__segment--lecture {
+        background: #818CF8;
+    }
+    html.dark .scan-window__segment--grace {
+        background: #FBBF24;
+    }
+
+    /* Torch is a toggle, so it needs to look pressed. */
+    [data-torch][data-torch-active="true"] {
+        background: #4F46E5;
+        border-color: transparent;
+        color: #FFFFFF;
+    }
+    html.dark [data-torch][data-torch-active="true"] {
+        background: #6366F1;
     }
 
     /* Theme switch icons swap in CSS, so the correct glyph is painted with the
@@ -658,6 +789,8 @@
         .live-dot[data-pulse="true"]::after,
         .roomie-laser,
         .roomie-shake,
+        .roomie-flash,
+        .roomie-flash__mark,
         dialog.roomie-dialog[open] {
             animation: none !important;
         }
