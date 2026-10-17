@@ -8,7 +8,7 @@ that language for user-facing strings and comments; use English for identifiers.
 
 ```bash
 composer install
-php artisan migrate --seed        # seed is NOT idempotent (see below)
+php artisan migrate --seed        # idempotent: aman dijalankan ulang
 php artisan serve                 # APP_URL is http://127.0.0.1:8000
 php artisan test                  # see the warning below
 vendor/bin/pint                   # Laravel preset; no pint.json exists
@@ -34,9 +34,22 @@ php artisan route:list
   This is expected — do not change the app to make it pass.
 - Only `UserFactory` exists. There are no factories for `Room`, `Reservation`,
   or `RoomSession`, and no `RefreshDatabase` usage anywhere.
-- `DatabaseSeeder` uses `create()` with fixed values, so a second `db:seed`
-  fails on the unique constraints. Seeded logins (password `password123`):
+- `DatabaseSeeder` is idempotent and safe to re-run. Users and rooms use
+  `firstOrCreate`, so an existing `password` is never overwritten and — critically
+  — an existing `rooms.qr_token` is **not** re-randomised, which would kill every
+  printed door label. Seeded logins (password `password123`):
   `admin@kampus.ac.id` (role `admin`), `nadia@kampus.ac.id` (role `mahasiswa`).
+- `HistorySeeder` adds demo usage history: 16 rows for Nadia (2 pages at 10/page)
+  and 3 for admin. Every timestamp is computed from `now()` with the same
+  `sks × 50 + 60` formula as `RoomSessionController::storeCheckin()`, and it
+  seeds exactly **one** `ACTIVE` session (Nadia's, so the dashboard bento and
+  notification centre have something to show). `reservations` has no unique
+  constraint, so a second run would silently duplicate rows — the seeder
+  therefore skips itself when the user already has history. To reseed:
+  `DELETE FROM room_sessions; DELETE FROM reservations;` then re-run.
+- The seeded `ACTIVE` session expires ~4h after seeding and is only swept to
+  `EXPIRED` during a scan (`expireOldSessions`), so a day-old database shows that
+  room as overdue until someone scans it.
 
 ## Domain rules that are easy to break
 
