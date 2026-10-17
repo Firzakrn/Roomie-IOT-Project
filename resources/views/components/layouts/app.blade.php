@@ -45,8 +45,8 @@
         <div class="flex h-16 shrink-0 items-center gap-3 px-5">
             <a href="{{ route('dashboard') }}"
                class="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-roomie-surface">
-                <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
-                    <x-ui.icon name="house" :size="18" />
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-[13px] bg-indigo-600 text-white">
+                    <x-ui.brand :size="19" />
                 </span>
                 <span class="roomie-brand-text min-w-0">
                     <span class="block truncate text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
@@ -95,8 +95,8 @@
 
                 <a href="{{ route('dashboard') }}"
                    class="flex min-w-0 items-center gap-2 lg:hidden">
-                    <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                        <x-ui.icon name="house" :size="16" />
+                    <span class="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-indigo-600 text-white">
+                        <x-ui.brand :size="17" />
                     </span>
                     <span class="truncate text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-50">Roomie</span>
                 </a>
@@ -113,11 +113,16 @@
                      notification centre here, driven by the live feed. --}}
                 {{ $topbar ?? '' }}
 
-                <button type="button" data-theme-toggle aria-pressed="false"
+                <button type="button" data-theme-toggle
                         class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100">
+                    {{-- Neither span carries `hidden`: the global [hidden] guard is
+                     `!important` and would beat the stylesheet's theme swap,
+                     leaving this button with no glyph at all in dark mode. CSS
+                     owns visibility here, and paints the state being switched
+                     TO so the glyph agrees with the aria-label. --}}
                     <span class="sr-only">Ganti tema</span>
                     <span data-theme-icon="sun"><x-ui.icon name="sun" :size="18" /></span>
-                    <span data-theme-icon="moon" hidden><x-ui.icon name="moon" :size="18" /></span>
+                    <span data-theme-icon="moon"><x-ui.icon name="moon" :size="18" /></span>
                 </button>
 
                 <div class="relative shrink-0" data-menu>

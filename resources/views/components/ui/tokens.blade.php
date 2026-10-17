@@ -523,18 +523,23 @@
     }
 
     /* Theme switch icons swap in CSS, so the correct glyph is painted with the
-       theme itself instead of being patched a frame later by script. */
-    [data-theme-icon="moon"] {
+       theme itself instead of being patched a frame later by script.
+
+       The glyph shows the state you are switching TO, which is what the
+       button's aria-label says: moon on a light page ("Aktifkan mode gelap"),
+       sun on a dark one ("Aktifkan mode terang"). Showing the current state
+       instead left the label and the icon contradicting each other. */
+    [data-theme-icon="sun"] {
         display: none;
+    }
+    [data-theme-icon="moon"] {
+        display: inline-flex;
     }
     html.dark [data-theme-icon="sun"] {
-        display: none;
+        display: inline-flex;
     }
     html.dark [data-theme-icon="moon"] {
-        display: inline-flex;
-    }
-    [data-theme-icon="sun"] {
-        display: inline-flex;
+        display: none;
     }
     [data-nav-collapse] svg {
         transition: transform .2s cubic-bezier(.4, 0, .2, 1);

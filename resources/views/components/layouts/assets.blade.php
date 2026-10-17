@@ -30,13 +30,17 @@
 
         const themeToggle = document.querySelector('[data-theme-toggle]');
 
+        /* Only the label is scripted here. The glyph swap is pure CSS, so the
+           icon is already correct on first paint — including before this file
+           runs. No aria-pressed: the label names the action, and adding the
+           current state on top of it just contradicts the glyph. */
         const syncThemeToggle = () => {
             if (!themeToggle) return;
-            const dark = root.classList.contains('dark');
-            themeToggle.setAttribute('aria-pressed', String(dark));
             themeToggle.setAttribute(
                 'aria-label',
-                dark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'
+                root.classList.contains('dark')
+                    ? 'Aktifkan mode terang'
+                    : 'Aktifkan mode gelap'
             );
         };
 
