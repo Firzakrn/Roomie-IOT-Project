@@ -110,6 +110,14 @@
         --badge-fg: #0369A1;
         --badge-ring: #BAE6FD;
     }
+
+    /* DESIGN.md §4.D: "Active" is the soft-indigo chip. Distinct from `info`,
+       which §2 reserves for reserved/scan-success states. */
+    .badge[data-state="indigo"] {
+        --badge-bg: #EEF2FF;
+        --badge-fg: #4338CA;
+        --badge-ring: #C7D2FE;
+    }
     .badge[data-state="unknown"],
     .badge[data-state="UNKNOWN"] {
         --badge-bg: #F1F5F9;
@@ -138,6 +146,11 @@
         --badge-bg: #082F49;
         --badge-fg: #38BDF8;
         --badge-ring: #075985;
+    }
+    html.dark .badge[data-state="indigo"] {
+        --badge-bg: #1E1B4B;
+        --badge-fg: #A5B4FC;
+        --badge-ring: #312E81;
     }
     html.dark .badge[data-state="unknown"],
     html.dark .badge[data-state="UNKNOWN"] {

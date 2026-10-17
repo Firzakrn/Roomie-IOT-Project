@@ -3,7 +3,9 @@
 
     The error summary is focusable and the script below moves focus to it, so a
     screen reader hears why the attempt failed instead of landing on the first
-    field. Validation is unchanged: AuthController still owns it.
+    field; each message also links to the input it concerns.
+
+    Validation is unchanged: AuthController still owns it.
 --}}
 <x-layouts.guest title="Masuk · Roomie">
 
@@ -13,24 +15,16 @@
     </p>
 
     @if ($errors->any())
-        <div tabindex="-1" data-error-summary
-             class="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-4 focus-visible:outline-none dark:border-rose-500/40 dark:bg-rose-500/10">
-            <p class="flex items-center gap-2 text-sm font-semibold text-rose-800 dark:text-rose-200">
-                <x-ui.icon name="alert-triangle" :size="16" />
-                Tidak dapat masuk
-            </p>
-            <ul class="mt-2 list-disc space-y-1 pl-6 text-sm leading-relaxed text-rose-700 dark:text-rose-300">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+        <div class="mt-5">
+            <x-ui.error-summary title="Tidak dapat masuk"
+                               :fields="['email' => 'email', 'password' => 'password']" />
         </div>
     @endif
 
     <form method="POST" action="{{ route('login.attempt') }}" class="mt-6 space-y-4">
         @csrf
 
-        <x-ui.field name="email" label="Email" type="email" :autofocus="true"
+        <x-ui.field name="email" label="Email" type="email" :autofocus="! $errors->has('email')"
                    autocomplete="username"
                    placeholder="nama@kampus.ac.id" />
 
