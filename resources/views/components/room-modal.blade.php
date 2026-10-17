@@ -61,7 +61,7 @@
                     <div class="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <div>
                             <p class="text-xs font-medium text-slate-500">Status Sensor Pintu</p>
-                            <p id="modal-sensor-status" class="font-bold text-roomie-ink">Menunggu data sensor</p>
+                            <p id="modal-sensor-status" class="font-bold text-roomie-ink">{{ $sensorFresh ? ($room->sensor_status ?? 'UNKNOWN') : 'UNKNOWN' }}</p><p class="mt-1 text-xs text-slate-500">{{ $room->sensor_updated_at?->diffForHumans() ?? 'Belum ada laporan Wokwi' }}</p>
                         </div>
                         <span class="text-xs text-slate-400">IoT</span>
                     </div>

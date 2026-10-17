@@ -29,6 +29,11 @@ class Reservation extends Model
         return $this->belongsTo(Room::class);
     }
 
+    public function roomSession()
+    {
+        return $this->hasOne(RoomSession::class);
+    }
+
     protected $casts = [
         'start_at' => 'datetime',
         'end_at' => 'datetime',

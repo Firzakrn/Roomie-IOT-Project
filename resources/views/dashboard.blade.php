@@ -30,7 +30,7 @@
 
     <header class="border-b border-roomie-line bg-white">
         <nav class="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Navigasi utama">
-            <a href="#dashboard" class="flex items-center gap-2.5" aria-label="Roomie, halaman utama">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5" aria-label="Roomie, halaman utama">
                 <span class="flex size-9 items-center justify-center rounded-xl bg-roomie-blue text-white shadow-sm">
                     <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
                         <path d="M3.75 10.25 12 3.75l8.25 6.5v9.1a1 1 0 0 1-1 1h-5.1v-6.1h-4.3v6.1h-5.1a1 1 0 0 1-1-1v-9.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -42,21 +42,22 @@
             <details class="group relative">
                 <summary class="flex cursor-pointer list-none items-center gap-2.5 rounded-xl p-1.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roomie-blue">
                     <span class="hidden text-right sm:block">
-                        <span class="block text-sm font-semibold leading-5">Nadia Putri</span>
-                        <span class="block text-xs text-slate-500">Mahasiswa</span>
+                        <span class="block text-sm font-semibold leading-5">{{ auth()->user()->name }}</span>
+                        <span class="block text-xs text-slate-500">{{ ucfirst(auth()->user()->role) }}</span>
                     </span>
-                    <span class="flex size-9 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-800">NP</span>
+                    <span class="flex size-9 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-800">{{ strtoupper(mb_substr(auth()->user()->name, 0, 2)) }}</span>
                     <svg viewBox="0 0 20 20" class="size-4 text-slate-500 transition group-open:rotate-180" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
                     </svg>
                 </summary>
                 <div class="absolute right-0 top-full z-20 mt-2 w-52 rounded-xl border border-roomie-line bg-white p-1.5 shadow-soft">
                     <div class="border-b border-roomie-line px-3 py-2 sm:hidden">
-                        <p class="text-sm font-semibold">Nadia Putri</p>
-                        <p class="text-xs text-slate-500">Mahasiswa</p>
+                        <p class="text-sm font-semibold">{{ auth()->user()->name }}</p>
+                        <p class="text-xs text-slate-500">{{ ucfirst(auth()->user()->role) }}</p>
                     </div>
-                    <a href="#profil" class="block rounded-lg px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50">Profil saya</a>
-                    <form method="POST" action="#">
+                    <a href="{{ route('reservation.history') }}" class="block rounded-lg px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50">Riwayat Penggunaan</a>
+                    @if(auth()->user()->role === 'admin')<a href="{{ route('rooms.qr-labels') }}" class="block rounded-lg px-3 py-2.5 text-sm text-blue-700 hover:bg-blue-50">Cetak QR Ruangan</a>@endif
+                    <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50">Keluar</button>
                     </form>
@@ -68,16 +69,16 @@
     <main id="dashboard" class="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-9 lg:px-8">
         <div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <p class="mb-1 text-sm font-semibold text-roomie-blue">Jumat, 16 Oktober 2026</p>
+                <p class="mb-1 text-sm font-semibold text-roomie-blue">{{ now()->translatedFormat('l, d F Y') }}</p>
                 <h1 class="text-2xl font-bold tracking-tight text-roomie-ink sm:text-3xl">Dashboard Ruangan</h1>
-                <p class="mt-1.5 text-sm text-slate-500">Pantau ketersediaan ruang kelas di kampus.</p>
+                <p class="mt-1.5 text-sm text-slate-500">Pantau ketersediaan kelas. Penggunaan hanya dapat dimulai melalui scan QR di kelas.</p>
             </div>
             <div class="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <span class="relative flex size-2.5">
                     <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-50"></span>
                     <span class="relative inline-flex size-2.5 rounded-full bg-emerald-500"></span>
                 </span>
-                Sensor diperbarui otomatis
+                Status ruangan diperbarui berkala
             </div>
         </div>
 
@@ -90,11 +91,11 @@
                         </svg>
                     </span>
                     <div>
-                        <h2 id="scan-heading" class="text-lg font-bold sm:text-xl">Cari ruangan lebih cepat</h2>
-                        <p class="mt-1 max-w-lg text-sm leading-5 text-blue-100">Pindai QR di pintu ruangan untuk melihat status dan detailnya.</p>
+                        <h2 id="scan-heading" class="text-lg font-bold sm:text-xl">Check-in langsung dari kelas</h2>
+                        <p class="mt-1 max-w-lg text-sm leading-5 text-blue-100">Datang ke depan kelas dan scan QR untuk check-in. Scan lagi saat selesai untuk check-out.</p>
                     </div>
                 </div>
-                <button type="button" onclick="simulateScan()" class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-roomie-blue shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 sm:w-auto">
+                <button type="button" onclick="window.location.href = @js(route('scanner'))" class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-roomie-blue shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40 sm:w-auto">
                     <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
                         <path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M8 8h8v8H8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -103,12 +104,15 @@
             </div>
         </section>
 
+        @if(session('success'))<div role="status" class="mb-5 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{{ session('success') }}</div>@endif
+        @if(session('error'))<div role="alert" class="mb-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-800">{{ session('error') }}</div>@endif
+        <div class="mb-5 flex justify-end"><a href="{{ route('reservation.history') }}" class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100">Lihat riwayat penggunaan →</a></div>
         <section aria-label="Ringkasan ruangan" class="mb-9 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             @php
                 $stats = [
                     ['label' => 'Total Ruangan', 'value' => $totalRooms, 'caption' => 'Terdaftar di kampus', 'tone' => 'blue', 'icon' => 'grid'],
                     ['label' => 'Ruangan Tersedia', 'value' => $availableRooms, 'caption' => 'Siap digunakan', 'tone' => 'green', 'icon' => 'check'],
-                    ['label' => 'Sedang Terpakai', 'value' => $occupiedRooms, 'caption' => 'Aktivitas terdeteksi', 'tone' => 'red', 'icon' => 'users'],
+                    ['label' => 'Sedang Terpakai', 'value' => $occupiedRooms, 'caption' => 'Check-in QR aktif', 'tone' => 'red', 'icon' => 'users'],
                     ['label' => 'Perlu Diperiksa', 'value' => $unknownRooms, 'caption' => 'Status sensor tidak diketahui', 'tone' => 'amber', 'icon' => 'alert'],
                 ];
             @endphp
@@ -136,7 +140,7 @@
                             @endif
                         </span>
                     </div>
-                    <p class="text-3xl font-bold leading-none {{ $toneClasses[$stat['tone']]['value'] }}">{{ $stat['value'] }}</p>
+                    <p data-stat="{{ ['Total Ruangan'=>'total','Ruangan Tersedia'=>'available','Sedang Terpakai'=>'occupied','Perlu Diperiksa'=>'unknown'][$stat['label']] }}" class="text-3xl font-bold leading-none {{ $toneClasses[$stat['tone']]['value'] }}">{{ $stat['value'] }}</p>
                     <p class="mt-2 text-[11px] leading-4 text-slate-400 sm:text-xs">{{ $stat['caption'] }}</p>
                 </article>
             @endforeach
@@ -169,11 +173,11 @@
                                 'occupied' => ['label' => 'Sedang dipakai', 'class' => 'bg-rose-50 text-rose-700 ring-rose-600/15', 'dot' => 'bg-rose-500'],
                                 'unknown' => ['label' => 'Perlu diperiksa', 'class' => 'bg-amber-50 text-amber-800 ring-amber-600/20', 'dot' => 'bg-amber-500'],
                             ][$room['availability']];
-                            $sensorClass = $room['sensor'] === 'UNOCCUPIED'
+                            $sensorClass = $room['sensor'] === 'TERTUTUP'
                                 ? 'bg-emerald-50 text-emerald-700'
-                                : ($room['sensor'] === 'OCCUPIED' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-600');
+                                : ($room['sensor'] === 'TERBUKA' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-600');
                         @endphp
-                        <article class="grid gap-3 px-4 py-4 transition hover:bg-slate-50/60 sm:px-5 md:grid-cols-[minmax(0,1.5fr)_minmax(130px,.85fr)_minmax(130px,.85fr)_minmax(150px,.9fr)_auto] md:items-center md:gap-4">
+                        <article data-room-code="{{ $room['code'] }}" class="grid gap-3 px-4 py-4 transition hover:bg-slate-50/60 sm:px-5 md:grid-cols-[minmax(0,1.5fr)_minmax(130px,.85fr)_minmax(130px,.85fr)_minmax(150px,.9fr)_auto] md:items-center md:gap-4">
                             <div class="flex min-w-0 items-center gap-3">
                                 <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
                                     <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true"><path d="M3.75 10.25 12 3.75l8.25 6.5v9.1a1 1 0 0 1-1 1h-5.1v-6.1h-4.3v6.1h-5.1a1 1 0 0 1-1-1v-9.1Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
@@ -185,49 +189,65 @@
                             </div>
                             <div class="flex items-center justify-between gap-3 md:block">
                                 <span class="text-xs font-medium text-slate-400 md:hidden">Ketersediaan</span>
-                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset {{ $availability['class'] }}">
+                                <span data-availability class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset {{ $availability['class'] }}">
                                     <span class="size-1.5 rounded-full {{ $availability['dot'] }}"></span>{{ $availability['label'] }}
                                 </span>
                             </div>
                             <div class="flex items-center justify-between gap-3 md:block">
                                 <span class="text-xs font-medium text-slate-400 md:hidden">Status sensor</span>
-                                <span class="inline-flex rounded-md px-2 py-1 font-mono text-[10px] font-bold tracking-wide {{ $sensorClass }}">{{ $room['sensor'] }}</span>
+                                <span data-sensor class="inline-flex rounded-md px-2 py-1 font-mono text-[10px] font-bold tracking-wide {{ $sensorClass }}">{{ $room['sensor'] }}</span>
                             </div>
                             <div class="flex items-center justify-between gap-3 md:block">
                                 <span class="text-xs font-medium text-slate-400 md:hidden">Pembaruan sensor</span>
-                                <span class="text-xs text-slate-500">{{ $room['updated'] }}</span>
+                                <span data-updated class="text-xs text-slate-500">{{ $room['updated'] }}</span>
                             </div>
                             <div class="flex justify-end border-t border-slate-100 pt-3 md:border-0 md:pt-0">
-                                @if ($room['availability'] === 'available')
-                                    <a href="#reservasi-{{ $room['code'] }}" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-roomie-blue px-3.5 text-xs font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roomie-blue focus-visible:ring-offset-2">Reservasi</a>
-                                @else
-                                    <button onclick="openModal('{{ $room['code'] }}')" type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-roomie-line bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roomie-blue focus-visible:ring-offset-2">
-                                        Lihat detail
-                                    </button>
-                                @endif
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    <a href="{{ route('scanner') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-roomie-blue px-3.5 text-xs font-semibold text-white hover:bg-blue-700">Scan QR</a>
+                                    <button onclick="openModal(@js($room['code']))" type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-roomie-line bg-white px-3.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Detail</button>
+                                </div>
                             </div>
                         </article>
                     @endforeach
                 </div>
                 <div class="flex flex-col gap-2 border-t border-roomie-line bg-slate-50/60 px-4 py-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <span>Menampilkan {{ count($rooms) }} dari {{ $totalRooms }} ruangan</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="size-1.5 rounded-full bg-amber-500"></span>{{ $unknownRooms }} sensor perlu diperiksa</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="size-1.5 rounded-full bg-amber-500"></span><span data-unknown-count>{{ $unknownRooms }}</span> sensor perlu diperiksa</span>
                 </div>
             </div>
         </section>
     </main>
     <div id="room-modal-container"></div>
     <script>
-        function simulateScan() {
-            // Munculkan dialog untuk memasukkan token
-            let token = prompt("SIMULASI SCAN QR 📸\n\nKarena kamera belum aktif, silakan paste 'qr_token' ruangan dari databasemu di sini:");
-
-            // Jika token diisi dan user menekan OK
-            if (token) {
-                // Arahkan ke rute ScanController yang sudah kita buat tadi
-               window.location.href = "/Roomie/public/scan/" + token.trim();
+        async function refreshRooms() {
+            try {
+                const response = await fetch(@json(route('rooms.live')), {headers: {'Accept':'application/json'}, cache: 'no-store'});
+                if (!response.ok) return;
+                const snapshot = await response.json();
+                for (const item of snapshot.rooms) {
+                    // Cari menggunakan atribut dan bandingkan nilainya (tidak memakai selector token tidak aman).
+                    const row = Array.from(document.querySelectorAll('[data-room-code]')).find(el => el.dataset.roomCode === item.code);
+                    if (!row) continue;
+                    const availability = row.querySelector('[data-availability]');
+                    const sensor = row.querySelector('[data-sensor]');
+                    const updated = row.querySelector('[data-updated]');
+                    availability.textContent = item.availability === 'occupied' ? '● Sedang dipakai' : '● Tersedia';
+                    availability.className = 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ' + (item.availability === 'occupied' ? 'bg-rose-50 text-rose-700 ring-rose-600/15' : 'bg-emerald-50 text-emerald-700 ring-emerald-600/15');
+                    sensor.textContent = item.sensor;
+                    sensor.className = 'inline-flex rounded-md px-2 py-1 font-mono text-[10px] font-bold tracking-wide ' + (item.sensor === 'TERBUKA' ? 'bg-rose-50 text-rose-700' : item.sensor === 'TERTUTUP' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600');
+                    updated.textContent = item.updated;
+                }
+                for (const [key, val] of Object.entries(snapshot.summary)) {
+                    const cell = document.querySelector('[data-stat="' + key + '"]');
+                    if (cell) cell.textContent = val;
+                }
+                const unknown = document.querySelector('[data-unknown-count]');
+                if (unknown) unknown.textContent = snapshot.summary.unknown;
+            } catch (error) {
+                console.warn('Monitoring sementara tidak tersedia:', error);
             }
         }
+        setInterval(() => { if (!document.hidden) refreshRooms(); }, 10000);
 
         let countdownInterval;
 

@@ -4,53 +4,160 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
-use App\Models\Reservation;
-use Carbon\Carbon;
+use App\Models\RoomSession;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RoomDeviceController extends Controller
 {
-    public function checkStatus($code)
+    private function verifyKey(Request $request): void
     {
-        $room = Room::where('code', $code)->first();
+        $configured = (string) config(
+            'roomie.device_api_key', ''
+        );
 
-        if (!$room) {
-            return response()->json(['status' => 'NOT_FOUND'], 404);
+        if ($configured === '') {
+            abort(response()->json([
+                'message' => 'Device API key belum diatur.'
+            ], 503));
         }
 
-        $now = Carbon::now();
+        if (!hash_equals(
+            $configured,
+            (string) $request->header('X-Device-Key', '')
+        )) {
+            abort(response()->json([
+                'message' => 'Device API key tidak valid.'
+            ], 401));
+        }
+    }
 
-        // Cek apakah ada jadwal reservasi aktif di jam ini
-        $reservation = Reservation::where('room_id', $room->id)
-            ->where('status', 'CONFIRMED')
-            ->where('start_at', '<=', $now)
-            ->where('end_at', '>=', $now)
+    // WOKWI MEMBACA STATUS KELAS
+    public function checkStatus(Request $request, string $code)
+    {
+        $this->verifyKey($request);
+
+        $room = Room::where('code', $code)
+            ->where('is_active', true)
             ->first();
 
-        if ($reservation) {
+        if (!$room) {
             return response()->json([
-                'status' => 'OCCUPIED',
-                'course' => $reservation->course_name,
-                'until'  => Carbon::parse($reservation->end_at)->format('H.i'),
+                'status' => 'NOT_FOUND'
+            ], 404);
+        }
+
+        $session = RoomSession::with('reservation')
+            ->where('room_id', $room->id)
+            ->where('status', 'ACTIVE')
+            ->whereHas('reservation', function ($q) {
+                $q->where('status', 'CONFIRMED')
+                  ->where('end_at', '>', now());
+            })
+            ->first();
+
+        return response()->json([
+            'status' => $session ? 'OCCUPIED' : 'UNOCCUPIED',
+            'session_id' => $session?->id,
+            'course' => $session?->reservation?->course_name ?? '',
+            'until' => $session?->reservation?->end_at?->format('H:i') ?? '',
+        ]);
+    }
+
+    // MENERIMA SENSOR DAN AUTO CHECK-OUT
+    public function updateSensor(Request $request, string $code)
+    {
+        $this->verifyKey($request);
+
+        $data = $request->validate([
+            'pintu' => ['required', 'in:TERBUKA,TERTUTUP'],
+            'gerak' => ['sometimes', 'boolean'],
+            'auto_checkout' => ['sometimes', 'boolean'],
+            'session_id' => ['nullable', 'integer', 'min:1'],
+            'suhu' => ['sometimes', 'numeric', 'between:-40,125'],
+        ]);
+
+        // Auto check-out hanya boleh dikirim
+        // jika PIR tidak mendeteksi gerakan.
+        if (!empty($data['auto_checkout']) &&
+            (($data['gerak'] ?? null) !== false ||
+             empty($data['session_id']))) {
+
+            return response()->json([
+                'message' => 'Data auto check-out tidak valid.'
+            ], 422);
+        }
+
+        $result = DB::transaction(function () use ($code, $data) {
+
+            $room = Room::where('code', $code)
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$room) {
+                return null;
+            }
+
+            // Simpan pembacaan sensor
+            $room->update([
+                'sensor_status' => $data['pintu'],
+                'sensor_payload' => $data,
+                'sensor_updated_at' => now(),
             ]);
+
+            $autoCheckoutDone = false;
+
+            if (!empty($data['auto_checkout'])) {
+
+                // Hanya boleh menutup sesi yang
+                // sebelumnya dibaca oleh ESP32.
+                $session = RoomSession::with('reservation')
+                    ->whereKey($data['session_id'])
+                    ->where('room_id', $room->id)
+                    ->where('status', 'ACTIVE')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($session &&
+                    $session->reservation &&
+                    $session->reservation->status === 'CONFIRMED') {
+
+                    $now = now();
+
+                    // Akhiri sesi penggunaan
+                    $session->update([
+                        'status' => 'EXPIRED',
+                        'checked_out_at' => $now,
+                    ]);
+
+                    // Catat waktu selesai sebenarnya
+                    $session->reservation->update([
+                        'status' => 'COMPLETED',
+                        'end_at' => $now,
+                    ]);
+
+                    $autoCheckoutDone = true;
+                }
+            }
+
+            return [
+                'room' => $room->code,
+                'auto_checkout_done' => $autoCheckoutDone,
+            ];
+
+        }, 3);
+
+        if (!$result) {
+            return response()->json([
+                'message' => 'Ruangan tidak ditemukan.'
+            ], 404);
         }
 
         return response()->json([
-            'status' => 'UNOCCUPIED',
-            'course' => '',
-            'until'  => '',
-        ]);
-    }
-    public function updateSensor(Request $request, $code)
-    {
-        // Tangkap data yang dikirim dari Wokwi
-        $statusPintu = $request->input('pintu'); // isinya nanti 'TERBUKA' atau 'TERTUTUP'
-
-        // Nanti di sini kita simpan ke database untuk mengubah tulisan UNKNOWN di dashboard.
-        // Untuk sekarang, kita buat Laravel menjawab "Pesan Diterima"
-        return response()->json([
-            'message' => 'Laporan dari ruangan ' . $code . ' diterima!',
-            'status_pintu' => $statusPintu
+            'message' => 'Sensor tersimpan.',
+            'room' => $result['room'],
+            'auto_checkout_done' => $result['auto_checkout_done'],
         ]);
     }
 }

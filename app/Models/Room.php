@@ -18,5 +18,13 @@ class Room extends Model
         'capacity',
         'qr_token',
         'is_active',
+        'sensor_status',
+        'sensor_payload',
+        'sensor_updated_at',
+    ];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'sensor_payload' => 'array',
+        'sensor_updated_at' => 'datetime',
     ];
 }
