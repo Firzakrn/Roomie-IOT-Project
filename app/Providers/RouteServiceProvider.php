@@ -15,9 +15,14 @@ class RouteServiceProvider extends ServiceProvider
      *
      * Typically, users are redirected here after authentication.
      *
+     * Roomie tidak punya route /home. Halaman depan adalah route('dashboard')
+     * yang dipetakan ke "/", jadi nilai ini harus ikut. Nilai lama "/home"
+     * membuat pengguna yang sudah login membuka /login atau /daftar berakhir
+     * di 404 karena RedirectIfAuthenticated memanggil konstanta ini.
+     *
      * @var string
      */
-    public const HOME = '/home';
+    public const HOME = '/';
 
     /**
      * Define your route model bindings, pattern filters, and other route configuration.

@@ -1,21 +1,112 @@
-<!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak QR Ruangan · Roomie</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<style>@media print{.no-print{display:none!important}body{background:#fff!important}.qr-card{break-inside:avoid;box-shadow:none!important}}</style></head>
-<body class="bg-slate-50 p-5 text-slate-800 sm:p-8"><main class="mx-auto max-w-5xl">
-<nav class="no-print mb-6 flex justify-between"><a href="{{ route('dashboard') }}" class="font-bold text-blue-600">← Dashboard</a><button onclick="window.print()" class="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white">Cetak QR</button></nav>
-<h1 class="text-2xl font-bold">QR Kelas Roomie</h1><p class="no-print mt-2 text-sm text-slate-600">Tempel QR ini pada masing-masing kelas. Isinya token ruangan, tidak terikat alamat Cloudflare yang dapat berubah. Pengguna perlu login pada website Roomie untuk memindainya.</p>
-<div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-@foreach($rooms as $room)
-<div class="qr-card rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><h2 class="text-xl font-bold">{{ $room->name }}</h2><p class="mt-1 text-sm text-slate-500">{{ $room->code }} · Gedung {{ $room->building }}</p><div id="qr-{{ $room->id }}" class="mx-auto mt-5 flex min-h-[190px] items-center justify-center"></div><p class="mt-4 text-sm font-semibold text-blue-700">Scan melalui dashboard Roomie</p></div>
-@endforeach
-</div>
-</main>
+{{--
+    Printable QR door labels (admin only — the gate lives in
+    DashboardController::qrLabels and is unchanged).
+
+    Each label is a fixed 90 x 60 mm box, in millimetres on screen AND on paper,
+    so the preview is what the printer actually produces. On A4 that is two per
+    row and eight per page, and the dashed edge doubles as a cut guide.
+
+    The raw qr_token is deliberately NOT printed. The QR already encodes it, and
+    a token printed in plain type beside the code would let anyone at the door
+    copy it down and check in without being there. It lives in the data-token
+    attribute only, which no one sees on paper.
+--}}
+<x-layouts.print title="Cetak QR Ruangan · Roomie">
+    <x-slot:head>
+        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    </x-slot:head>
+
+    {{-- Everything below is screen-only guidance. It is stripped before printing,
+         which is why the essential instruction also sits ON each label. --}}
+    <div class="no-print mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Label QR ruang kelas</h1>
+                <p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+                    Cetak satu label untuk setiap kelas, lalu tempel di pintu. Isi QR adalah
+                    <strong class="font-semibold">token ruangan</strong>, bukan alamat web, jadi label
+                    tetap berlaku walau tunnel berubah. Pengguna harus login ke Roomie lebih dulu
+                    untuk memindainya.
+                </p>
+            </div>
+
+            <x-ui.button type="button" variant="primary" size="md" icon="printer" data-print class="shrink-0">
+                Cetak label
+            </x-ui.button>
+        </div>
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            @foreach ([
+                ['icon' => 'layers', 'title' => 'Ukuran tetap', 'body' => 'Setiap label 90 × 60 mm. Di kertas A4 ada 2 label per baris dan 8 per halaman.'],
+                ['icon' => 'info', 'title' => 'Garis putus', 'body' => 'Bingkai label berubah jadi putus-putus saat dicetak. Potong mengikuti garis itu.'],
+                ['icon' => 'door', 'title' => 'Token tidak dicetak', 'body' => 'Kode QR tidak ditulis sebagai teks. Kalau ada yang menyalin token, check-in bisa dilakukan tanpa datang.'],
+            ] as $tip)
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <span class="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600" aria-hidden="true">
+                        <x-ui.icon :name="$tip['icon']" :size="16" />
+                    </span>
+                    <p class="mt-2.5 text-sm font-semibold text-slate-900">{{ $tip['title'] }}</p>
+                    <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ $tip['body'] }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="roomie-label-sheet">
+        @forelse ($rooms as $room)
+            <article class="roomie-label print-keep">
+                <div>
+                    <h2 class="truncate text-[13pt] font-semibold leading-tight text-slate-900">{{ $room->name }}</h2>
+                    <p class="mt-1 truncate font-mono text-[8pt] text-slate-500">
+                        {{ $room->code }} · Gedung {{ $room->building }} · Lantai {{ $room->floor ?? '-' }}
+                    </p>
+                </div>
+
+                <div id="qr-{{ $room->id }}" data-token="{{ $room->qr_token }}" data-room="{{ $room->name }}"
+                     class="roomie-qr flex items-center justify-center"></div>
+
+                <div>
+                    <p class="text-[8pt] font-bold uppercase tracking-widest text-indigo-700">Scan lewat Roomie</p>
+                    <p class="mt-0.5 text-[7pt] leading-tight text-slate-500">
+                        Tempel di pintu kelas · arahkan kamera ke QR
+                    </p>
+                </div>
+            </article>
+        @empty
+            <div class="col-span-full">
+                <x-ui.empty title="Belum ada ruangan"
+                            body="Tambahkan ruang kelas terlebih dahulu sebelum mencetak label QR."
+                            icon="qr" />
+            </div>
+        @endforelse
+    </div>
+
 <script>
-@if($rooms->count())
-if(typeof QRCode !== 'undefined') {
-@foreach($rooms as $room)
-new QRCode(document.getElementById(@json('qr-'.$room->id)), {text: @json($room->qr_token), width: 190, height: 190, correctLevel: QRCode.CorrectLevel.M});
-@endforeach
-}
-@endif
-</script></body></html>
+    document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+
+    if (typeof QRCode !== 'undefined') {
+        // The printed QR is 28mm on paper, which is ~331px at 300dpi. Rendering
+        // at 448 leaves headroom so the code stays crisp instead of turning into
+        // a blur, and the img is then scaled down by CSS.
+        const RENDER_SIZE = 448;
+
+        document.querySelectorAll('[data-token]').forEach((node) => {
+            new QRCode(node, {
+                text: node.dataset.token,
+                width: RENDER_SIZE,
+                height: RENDER_SIZE,
+                correctLevel: QRCode.CorrectLevel.M,
+            });
+
+            // qrcodejs injects an <img> with no alt text. The QR encodes an
+            // opaque token, so describe the label rather than the code itself.
+            const img = node.querySelector('img');
+            if (img) {
+                img.alt = 'QR code untuk ' + node.dataset.room;
+                img.width = RENDER_SIZE;
+                img.height = RENDER_SIZE;
+            }
+        });
+    }
+</script>
+</x-layouts.print>
