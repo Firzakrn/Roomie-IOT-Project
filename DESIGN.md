@@ -1,5 +1,34 @@
 # DESIGN.md - Roomie Smart Classroom & Monitoring System
 
+> ## 0. Status Implementasi (per 18 Oktober 2026)
+>
+> Dokumen ini adalah brief desain, bukan spesifikasi teknis. Beberapa bagiannya
+> **tidak diimplementasikan**, dan alasannya dicatat di sini supaya pembaca
+> berikutnya tidak salah mengira bagian itu hilang atau terlewat.
+>
+> | Bagian | Status | Catatan |
+> |---|---|---|
+> | §1 Dark mode | ✅ | `darkMode: 'class'` + toggle + `localStorage` |
+> | §2 Palet & token | ✅ | Semua pasangan fg/bg lolos kontras AA di kedua tema |
+> | §3 Tipografi | ✅ | Plus Jakarta Sans + JetBrains Mono, skala 24/18/15/14/12 |
+> | §4.A Sidebar + topbar | ✅ | 240px · rail 64px · drawer < 1024px · topbar glass |
+> | §4.A Notifications center | ✅ | Diturunkan dari snapshot live, **tanpa** store notifikasi |
+> | §4.B Bento card | ✅ | Ruangan terpakai dapat lebar 2 kolom |
+> | §4.B Ikon fasilitas (LCD/AC/Wifi) | ❌ | `rooms` tidak punya kolom facilities. Memalsukannya berarti menampilkan data yang tidak ada — kartu memakai kapasitas + lokasi + timeline sebagai gantinya. |
+> | §4.C Scanner | ✅ | Reticle + laser, torch, ganti kamera, retry, fallback token manual |
+> | §4.D Tabel riwayat | ✅ | `<table>` semantik ≥ 768px, kartu < 768px, header sticky |
+> | §4.D Export PDF/CSV (BAP) | ❌ | PDF butuh library yang tidak tersedia dan repo ini tidak punya build step (`npm` dilarang). CSV belum diprioritaskan. |
+> | §5.1 Metrik "Penalty Alerts" | ❌ → diganti | Tidak ada konsep penalti di domain: tidak ada tabel, aturan, maupun field yang bisa dihitung. Diganti **Sensor Stale** (> 90 detik), yang datanya benar-benar ada. |
+> | §5.2 Room Booking Flow 3 langkah | ❌ → diganti | **Bertentangan dengan aturan domain.** `reservations` adalah catatan pemakaian, bukan booking; tidak ada endpoint pemesanan dan tidak akan ada. Alur nyata adalah scan dua langkah (lihat `AGENTS.md`). Form SKS + preview durasi di halaman hasil scan yang menggantikan langkah 2–3. |
+> | §5.3 Input token manual | ✅ | Disclosure di halaman scanner, memakai `POST /scan` yang sudah ada |
+> | §5.4 Admin Control Panel | ❌ | Master data ruangan, regenerate token, dan log telemetri butuh endpoint + tabel baru. Tidak dikerjakan pada tahap ini. Yang ada: sheet cetak label QR. |
+> | Filter chip pada dashboard | ❌ | Sudah dibuat lalu **dihapus**. Dengan 3 ruang kelas, 9 tombol filter memakan ruang vertikal lebih besar dari yang dihemat; tiap kartu sudah membawa badge status dan pulse-nya. Hanya search bar yang tersisa. |
+>
+> Prinsip yang dipegang: jangan tampilkan kontrol yang tidak bisa bekerja, dan jangan
+> tampilkan angka yang tidak berasal dari data.
+
+---
+
 ## 1. Visual Identity & Theme Strategy
 
 - **Design Philosophy**: Modern, High-Density SaaS Dashboard mixed with Real-time Industrial Monitoring. Clean, precise, and human-centric.
@@ -28,7 +57,7 @@
 
 - **Success / Available**: `#10B981` (Emerald-500) — Room available, Check-in active, Sensor PIR active.
 - **Warning / Indicated**: `#F59E0B` (Amber-500) — Pending checkout, Unoccupied indicated timeout, Warning state.
-- **Danger / Occupied**: `#EF4444` (Rose-500) — Room unavailable/blocked, Missed check-in penalty, Overdue session.
+- **Danger / Occupied**: `#EF4444` (Rose-500) — Room unavailable/blocked, overdue session, expired room session.
 - **Info / Reserved**: `#0EA5E9` (Sky-500) — Reserved upcoming, QR Code scanned successfully.
 
 ---
@@ -56,6 +85,10 @@
 
 ### B. Classroom & Monitoring Bento Cards
 
+> ⚠️ Baris "Capacity & Facilities (LCD/AC/Wifi)" **tidak diimplementasikan** — tabel
+> `rooms` tidak punya kolom facilities. Kartu memakai kapasitas, lokasi
+> (gedung/lantai), dan timeline sesi sebagai gantinya.
+
 - **Structure**: Rounded-2xl (`16px`), padding `p-5`, subtle shadow `shadow-sm hover:shadow-md transition-all duration-200`.
 - **Live IoT Status Indicator**:
     - Top right corner of each room card features a live status pill.
@@ -63,7 +96,7 @@
     - Green pulse for active occupancy/motion, Yellow for unoccupied indicated, Red for locked/maintenance.
 - **Classroom Quick Meta**:
     - Room Code & Name (e.g., `A-302 (Lab Computer)`).
-    - Capacity & Facilities (Icons for LCD, AC, Wifi, SKS capacity).
+    - ~~Capacity & Facilities (Icons for LCD, AC, Wifi, SKS capacity).~~ → kapasitas, gedung, lantai.
     - Current Schedule / Active Reservation timeline bar.
 
 ### C. QR Code Scanner Component
@@ -82,23 +115,41 @@
     - `Active`: Soft Indigo bg (`bg-indigo-50 text-indigo-700 border-indigo-200`)
     - `Cancelled / Late`: Soft Rose bg (`bg-rose-50 text-rose-700 border-rose-200`)
 - **Export Actions**: Quick PDF / CSV download button with icon for BAP reports.
+    > ⚠️ **Tidak diimplementasikan.** PDF butuh library yang tidak tersedia, dan repo
+    > ini sengaja tidak punya build step (`npm` dilarang). Butuh endpoint baru juga.
 
 ---
 
 ## 5. Layout Architecture (Page Views)
 
 1. **Dashboard (Overview)**:
-    - Top Metrics Cards (Total Active Classes, Today's Reservations, IoT Sensor Health, Penalty Alerts).
-    - Bento Grid of Room Cards filterable by Building, Availability, or Sensor Status.
+    - Top Metrics Cards (Total Active Classes, Today's Reservations, IoT Sensor Health, **Sensor Stale**).
+        > ⚠️ "Penalty Alerts" diganti **Sensor Stale**. Tidak ada konsep penalti di domain
+        > — tidak ada tabel, aturan, atau field yang bisa dihitung.
+    - Bento Grid of Room Cards, **with a search bar only**.
+        > ⚠️ Filter chip by Building / Availability / Sensor Status **dihapus dengan
+        > sengaja**: dengan 3 ruang kelas, 9 tombol filter memakan ruang vertikal lebih
+        > besar dari yang dihemat, dan tiap kartu sudah membawa badge status sendiri.
 2. **Room Booking Flow (PJ Kelas)**:
-    - Step 1: Select Room & Date.
-    - Step 2: Input SKS (auto-calculates duration end time: 1 SKS = 50 min).
-    - Step 3: Confirmation modal with instant reservation lock.
+    > ⚠️ **Bagian ini dibatalkan** — bertentangan dengan aturan domain. `reservations`
+    > adalah catatan pemakaian, bukan booking; tidak ada endpoint pemesanan dan tidak
+    > akan ada (lihat komentar di `routes/web.php`). Alur yang benar: **scan dua
+    > langkah** (`POST /scan` → konfirmasi → `POST /scan/checkin`). Form SKS beserta
+    > preview durasi di halaman hasil scan yang menggantikan langkah 2–3.
+    - ~~Step 1: Select Room & Date.~~ → Step 1: pindai QR di pintu.
+    - Step 2: Input SKS (auto-calculates duration end time: 1 SKS = 50 min). ✅
+    - ~~Step 3: Confirmation modal with instant reservation lock.~~ → digabung ke step 2.
 3. **Check-in / Checkout Workspace**:
     - High-contrast mobile-friendly view with Camera QR Reader and manual fallback token input.
-    - Pre-checkout verification checklist (Ensure AC off, LCD off, Doors locked).
+    - ~~Pre-checkout verification checklist (Ensure AC off, LCD off, Doors locked).~~
+        > ⚠️ **Tidak diimplementasikan** — tidak ada endpoint untuk menyimpan checklist,
+        > dan tidak ada data apakah AC/LCD benar-benar mati. Checklist yang tidak bisa
+        > diverifikasi hanya menambahkan UI yang berbohong. Yang tersedia: status pintu
+        > dan gerak dari sensor ESP32.
 4. **Admin Control Panel**:
-    - Master data management for Rooms, Dynamic QR Token generation, and IoT ESP32 Telemetry Debug Logs.
+    > ⚠️ **Tidak diimplementasikan** — master data ruangan, regenerate token, dan log
+    > telemetri butuh endpoint + tabel baru. Yang tersedia sekarang hanya **sheet cetak
+    > label QR** (`/admin/qr-ruangan`).
 
 ---
 

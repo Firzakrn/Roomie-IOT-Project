@@ -771,30 +771,93 @@
         color: #FB7185;
     }
 
-    /* ---------- Print ---------- */
+    /* ---------- Print ----------
+       Two things bite here by default: browsers drop element backgrounds unless
+       asked, which erases every soft chip on the sheet, and the screen gutter
+       eats into the @page margins so the grid lands off the paper. */
     @page {
+        size: A4;
         margin: 12mm;
     }
+
+    /* Door label: 90 x 60 mm. Defined in millimetres on BOTH screen and paper, so
+       the preview is literally what comes out of the printer.
+       The 4mm gap matters: 2 labels + 4mm = 184mm inside a 186mm printable
+       width. With a 6mm gap the two columns come to exactly 186mm with zero
+       slack, and a single sub-pixel of rounding spills the sheet into a third
+       column and wastes half the page. */
+    .roomie-label-sheet {
+        display: grid;
+        grid-template-columns: repeat(2, 90mm);
+        gap: 4mm;
+        align-items: start;
+        justify-content: center;
+    }
+    @media (max-width: 480px) {
+        .roomie-label-sheet {
+            grid-template-columns: 90mm;
+        }
+    }
+
+    .roomie-label {
+        display: flex;
+        width: 90mm;
+        height: 60mm;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4mm 5mm;
+        border: 1px solid #E2E8F0;
+        border-radius: 3mm;
+        background: #FFFFFF;
+        text-align: center;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
     @media print {
-        html, html.dark {
+        html,
+        html.dark,
+        body {
             background: #FFFFFF !important;
             color-scheme: light;
         }
+
+        .print-reset {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
         .no-print {
             display: none !important;
         }
+
         .print-keep {
             break-inside: avoid;
             page-break-inside: avoid;
         }
+
+        /* A dashed edge on paper reads as "cut here". */
+        .roomie-label {
+            border-style: dashed;
+            border-color: #CBD5E1;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
     }
 
-    /* qrcodejs injects a fixed-size <img>; pin the print size and let it shrink
-       on narrow labels instead of overflowing the sheet. */
+    /* qrcodejs injects a fixed-size <img>. The label sizes it in millimetres so
+       the printed code lands at a predictable physical size — 28mm, chosen to fit
+       the label's content budget rather than by eye. Any larger and the name and
+       the instruction get clipped off the bottom of the paper. */
     .roomie-qr img {
-        width: 190px;
+        width: auto;
+        height: 28mm;
         max-width: 100%;
-        height: auto;
     }
 
     /* ---------- Reduced motion ---------- */
