@@ -1,16 +1,14 @@
 {{--
     Dashboard overview (DESIGN.md §5.1).
 
-    Bento grid of room cards, filterable by building / availability / sensor
-    freshness, with honest live state and a notification centre derived from the
-    same poll. Nothing here adds an endpoint: everything comes from
+    Bento grid of room cards with a single search box, honest live state, and a
+    notification centre derived from the same poll. Segmented filter chips were
+    tried and removed — with only three rooms they cost more vertical space than
+    they saved, and the cards already carry their own status badges and pulse.
+
+    Nothing here adds an endpoint: everything comes from
     DashboardController::roomSnapshot() and /rooms/live.
 --}}
-@php
-    // Opsi filter gedung diturunkan dari data, bukan dari daftar hard-code.
-    $buildings = $rooms->pluck('building')->filter()->unique()->sort()->values();
-@endphp
-
 <x-layouts.app title="Dashboard Ruangan · Roomie"
                description="Dashboard ketersediaan dan monitoring sensor ruang kelas Roomie.">
 
@@ -49,17 +47,19 @@
 
     {{-- Monitoring --}}
     <section class="mt-8" aria-labelledby="rooms-heading">
-        <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <h2 id="rooms-heading" class="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">Monitoring Ruangan</h2>
-            <span class="rounded-full bg-slate-200/80 px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                  data-list-count>{{ count($rooms) }}</span>
-        </div>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Status penggunaan dan laporan telemetri sensor ESP32. Filter berlaku di semua kolom.
-        </p>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <h2 id="rooms-heading" class="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">Monitoring Ruangan</h2>
+                    <span class="rounded-full bg-slate-200/80 px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          data-list-count>{{ count($rooms) }}</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Status penggunaan dan laporan telemetri sensor ESP32.
+                </p>
+            </div>
 
-        <div class="mt-4 flex flex-wrap items-center gap-2.5">
-            <div class="relative min-w-[13rem] flex-1 sm:max-w-xs">
+            <div class="relative w-full sm:w-72">
                 <label for="room-search" class="sr-only">Cari nama, kode, gedung, atau kapasitas</label>
                 <x-ui.icon name="search" :size="16"
                            class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -67,25 +67,6 @@
                        placeholder="Cari nama, kode, gedung..."
                        class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-900 shadow-tile outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-roomie-surface dark:text-slate-100 dark:placeholder:text-slate-500">
             </div>
-
-            <x-ui.filter-group name="filter-availability" legend="Filter ketersediaan"
-                               value="all"
-                               :options="[['all', 'Semua'], ['available', 'Tersedia'], ['occupied', 'Dipakai']]" />
-
-            <x-ui.filter-group name="filter-sensor" legend="Filter status sensor"
-                               value="all"
-                               :options="[['all', 'Sensor'], ['fresh', 'Terbaru'], ['stale', 'Stale']]" />
-
-            @if ($buildings)
-                <x-ui.filter-group name="filter-building" legend="Filter gedung"
-                                   value="all"
-                                   :options="array_merge([['all', 'Semua gedung']], $buildings->map(fn ($b) => [$b, 'Gedung '.$b])->all())" />
-            @endif
-
-            <x-ui.button type="button" variant="ghost" size="md" icon="refresh"
-                        data-filter-reset class="hidden" aria-pressed="false">
-                Reset
-            </x-ui.button>
         </div>
 
         <div class="mt-4">
@@ -112,7 +93,7 @@
 
             <div id="room-no-match" hidden class="mt-4">
                 <x-ui.empty title="Tidak ada ruangan yang cocok"
-                            body="Coba kata kunci lain, atau setel ulang filter yang aktif."
+                            body="Coba kata kunci lain atau kosongkan kolom pencarian."
                             icon="search" :level="3" />
             </div>
 
@@ -139,7 +120,6 @@
         const searchInput = document.getElementById('room-search');
         const noMatch = document.getElementById('room-no-match');
         const countNodes = Array.from(document.querySelectorAll('[data-list-count]'));
-        const resetButton = document.querySelector('[data-filter-reset]');
 
         const detailUrlTemplate = @json(route('room.detail-modal', ['code' => '__ROOM_CODE__']));
         const liveUrl = @json(route('rooms.live'));
@@ -149,8 +129,6 @@
         const chipLabel = document.querySelector('[data-live-label]');
         const toggle = document.querySelector('[data-live-toggle]');
         const toggleLabel = document.querySelector('[data-live-toggle-label]');
-
-        const filters = { q: '', building: 'all', availability: 'all', sensor: 'all' };
 
         let paused = false;
         let failures = 0;
@@ -163,81 +141,31 @@
         };
         let lastRooms = @json($rooms);
 
-        /* ---------------- filtering ---------------- */
+        /* ---------------- search ---------------- */
 
         const cardByCode = (code) =>
             Array.from(document.querySelectorAll('[data-room-code]'))
                 .find((el) => el.dataset.roomCode === code);
 
-        const isFiltered = () =>
-            filters.q !== '' || filters.building !== 'all' ||
-            filters.availability !== 'all' || filters.sensor !== 'all';
-
-        const matches = (card) => {
-            if (filters.q && !(card.dataset.search || '').includes(filters.q)) return false;
-            if (filters.building !== 'all' && card.dataset.building !== filters.building) return false;
-            if (filters.availability !== 'all' && card.dataset.availability !== filters.availability) return false;
-            if (filters.sensor === 'fresh' && card.dataset.sensorFresh !== '1') return false;
-            if (filters.sensor === 'stale' && card.dataset.sensorFresh !== '0') return false;
-            return true;
-        };
-
-        const applyFilters = () => {
+        const applySearch = () => {
             if (!roomList) return;
 
+            const term = (searchInput?.value || '').trim().toLowerCase();
             let visible = 0;
+
             Array.from(roomList.children).forEach((card) => {
-                const show = matches(card);
+                const show = !term || (card.dataset.search || '').includes(term);
                 card.hidden = !show;
                 if (show) visible += 1;
             });
 
             countNodes.forEach((node) => { node.textContent = visible; });
             if (noMatch) noMatch.hidden = visible !== 0;
-
-            if (resetButton) resetButton.classList.toggle('hidden', !isFiltered());
         };
 
-        searchInput?.addEventListener('input', () => {
-            filters.q = (searchInput.value || '').trim().toLowerCase();
-            applyFilters();
-        });
+        searchInput?.addEventListener('input', applySearch);
 
-        /* Radio state is the source of truth; the visible chip follows it. */
-        const syncCheckedStyles = () => {
-            document.querySelectorAll('[data-filter-group]').forEach((group) => {
-                group.querySelectorAll('[data-filter-input]').forEach((input) => {
-                    const label = group.querySelector('label[for="' + input.id + '"]');
-                    if (label) label.dataset.checked = input.checked ? 'true' : 'false';
-                });
-            });
-        };
-
-        document.addEventListener('change', (event) => {
-            const input = event.target.closest('[data-filter-input]');
-            if (!input) return;
-            filters[input.name.replace('filter-', '')] = input.value;
-            syncCheckedStyles();
-            applyFilters();
-        });
-
-        resetButton?.addEventListener('click', () => {
-            filters.q = '';
-            filters.building = 'all';
-            filters.availability = 'all';
-            filters.sensor = 'all';
-
-            if (searchInput) searchInput.value = '';
-            document.querySelectorAll('[data-filter-input]').forEach((input) => {
-                input.checked = input.value === 'all';
-            });
-
-            applyFilters();
-            searchInput?.focus();
-        });
-
-        syncCheckedStyles();
-        applyFilters();
+        applySearch();
 
         /* ---------------- live state ---------------- */
 

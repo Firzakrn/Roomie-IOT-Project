@@ -449,52 +449,6 @@
         color: currentColor;
     }
 
-    /* ---------- Segmented filter ----------
-       Deliberately NOT using `peer-checked`: Tailwind's peer variant matches
-       every later sibling, and one filter group holds several radios, so the
-       checked state leaked onto all options. State lives in a data attribute
-       instead — the same single-source idiom the badges and tones use. */
-    .filter-option {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 8px;
-        padding: 6px 12px;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.4;
-        cursor: pointer;
-        color: #475569;
-        transition: color .2s ease, background-color .2s ease;
-    }
-    .filter-option:hover {
-        color: #0F172A;
-    }
-    .filter-option[data-checked="true"] {
-        background: #4F46E5;
-        color: #FFFFFF;
-    }
-    .filter-option[data-checked="true"]:hover {
-        color: #FFFFFF;
-    }
-    .filter-input:focus-visible + .filter-option {
-        outline: 2px solid #4F46E5;
-        outline-offset: 2px;
-    }
-
-    html.dark .filter-option {
-        color: #94A3B8;
-    }
-    html.dark .filter-option:hover {
-        color: #F8FAFC;
-    }
-    html.dark .filter-option[data-checked="true"] {
-        background: #6366F1;
-        color: #FFFFFF;
-    }
-    html.dark .filter-input:focus-visible + .filter-option {
-        outline-color: #818CF8;
-    }
-
     /* ---------- Bento grid (DESIGN.md §5.1) ----------
        A room with a live session earns a double-width tile: it is the only
        state that needs to show a course name, an owner, a progress bar and a
