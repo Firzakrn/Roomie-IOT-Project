@@ -98,7 +98,22 @@
                 </x-ui.button>
             </span>
         </div>
+        <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+    <label for="qr-photo" class="block text-sm font-semibold text-slate-700">
+        Uji QR dari foto
+    </label>
 
+    <p class="mt-1 text-xs text-slate-500">
+        Pilih foto QR kelas untuk mengecek apakah kode dapat dibaca.
+    </p>
+
+    <input
+        id="qr-photo"
+        type="file"
+        accept="image/*"
+        class="mt-3 block w-full rounded-lg border p-2 text-sm"
+    >
+</div>
         {{-- Manual fallback. Shares one form with the camera path. --}}
         <details id="manual-fallback" class="mt-5 group rounded-xl border border-slate-200 dark:border-slate-800">
             <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:text-slate-300 dark:hover:text-white">
@@ -151,7 +166,7 @@
         const tokenInput = document.getElementById('qr-token');
         const tokenError = document.getElementById('token-error');
         const fallback = document.getElementById('manual-fallback');
-
+        const photoInput = document.getElementById('qr-photo');
         const torchWrap = document.querySelector('[data-torch-wrap]');
         const cameraWrap = document.querySelector('[data-camera-wrap]');
         const retryWrap = document.querySelector('[data-retry-wrap]');
@@ -254,6 +269,48 @@
             }
         };
 
+        photoInput?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file || submitting) return;
+
+    say('Membaca QR dari foto...');
+
+    try {
+        await stopReader();
+
+        setCameraState(false);
+
+        if (!reader) {
+            reader = new Html5Qrcode('reader');
+        }
+
+        const hasil = await reader.scanFile(file, false);
+
+        if (!tokenFromQR(hasil)) {
+            say(
+                'QR berhasil dibaca, tetapi isinya bukan token Roomie. Gunakan QR dari halaman admin.',
+                'error'
+            );
+
+            show(retryWrap, true);
+            return;
+        }
+
+        onDecoded(hasil);
+
+    } catch (error) {
+        console.error('Gagal membaca foto QR:', error);
+
+        say(
+            'QR pada foto tidak terbaca. Coba gunakan gambar yang lebih jelas.',
+            'error'
+        );
+
+        show(retryWrap, true);
+    }
+});
+
         const bindTrack = () => {
             const video = document.querySelector('#reader video');
             const stream = video?.srcObject;
@@ -283,10 +340,7 @@
         };
 
         const config = {
-            fps: 10,
-            // Keep the scan box square and proportional to the viewport, so it
-            // fills the reticle on a phone and a desktop alike.
-            qrbox: (width, height) => Math.round(Math.min(width, height) * 0.66),
+            fps: 15
         };
 
         const cameraError = (error) => {
