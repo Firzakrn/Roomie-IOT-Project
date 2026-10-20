@@ -22,6 +22,7 @@ class Room extends Model
         'sensor_payload',
         'sensor_updated_at',
     ];
+
     protected $casts = [
         'is_active' => 'boolean',
         'sensor_payload' => 'array',

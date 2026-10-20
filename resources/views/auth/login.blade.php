@@ -26,7 +26,7 @@
 
         <x-ui.field name="email" label="Email" type="email" :autofocus="! $errors->has('email')"
                    autocomplete="username"
-                   placeholder="nama@kampus.ac.id" />
+                   placeholder="contoh@unesa.ac.id" />
 
         <x-ui.field name="password" label="Kata sandi" type="password"
                    autocomplete="current-password" />

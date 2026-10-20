@@ -25,7 +25,7 @@ class RoomSessionController extends Controller
         $result = DB::transaction(function () use ($data) {
             $user = User::whereKey(auth()->id())->lockForUpdate()->firstOrFail();
             $room = Room::where('qr_token', $data['qr_token'])->lockForUpdate()->first();
-            if (!$room) {
+            if (! $room) {
                 throw ValidationException::withMessages(['qr_token' => 'QR tidak dikenal oleh Roomie.']);
             }
 
@@ -43,10 +43,11 @@ class RoomSessionController extends Controller
                 // Check-out hanya dilakukan oleh pemilik saat QR yang sama di-scan lagi.
                 $mine->update(['status' => 'COMPLETED', 'checked_out_at' => $now]);
                 $mine->reservation->update(['status' => 'COMPLETED', 'end_at' => $now]);
+
                 return ['room' => $room->code, 'action' => 'checkout'];
             }
 
-            if (!$room->is_active) {
+            if (! $room->is_active) {
                 throw ValidationException::withMessages(['qr_token' => 'Ruangan dinonaktifkan admin.']);
             }
             if ($this->userHasActiveSession($user->id, $now)) {
@@ -88,7 +89,7 @@ class RoomSessionController extends Controller
         ]);
 
         $pending = $request->session()->get('roomie_pending_scan');
-        if (!is_array($pending) ||
+        if (! is_array($pending) ||
             ($pending['user_id'] ?? null) !== auth()->id() ||
             ($pending['expires_at'] ?? 0) < now()->timestamp ||
             empty($pending['room_id']) || empty($pending['token_hash'])) {
@@ -98,8 +99,8 @@ class RoomSessionController extends Controller
         $roomCode = DB::transaction(function () use ($pending, $data) {
             $user = User::whereKey(auth()->id())->lockForUpdate()->firstOrFail();
             $room = Room::whereKey($pending['room_id'])->lockForUpdate()->first();
-            if (!$room || !$room->is_active ||
-                !hash_equals($pending['token_hash'], hash('sha256', $room->qr_token))) {
+            if (! $room || ! $room->is_active ||
+                ! hash_equals($pending['token_hash'], hash('sha256', $room->qr_token))) {
                 throw ValidationException::withMessages(['course_name' => 'Data QR tidak valid. Silakan scan kembali.']);
             }
 
@@ -137,10 +138,12 @@ class RoomSessionController extends Controller
                 'checked_in_at' => $now,
                 'status' => 'ACTIVE',
             ]);
+
             return $room->code;
         }, 3);
 
         $request->session()->forget('roomie_pending_scan');
+
         return redirect()->route('scan.result', ['code' => $roomCode])
             ->with('roomie_scan_action', 'checkin');
     }

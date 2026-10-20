@@ -21,8 +21,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/scan', [DashboardController::class, 'scanner'])->name('scanner');
     Route::post('/scan', [RoomSessionController::class, 'scan'])->middleware('throttle:12,1')->name('scan.process');
     Route::post('/scan/checkin', [RoomSessionController::class, 'storeCheckin'])
-    ->middleware('throttle:12,1')
-    ->name('scan.checkin');
+        ->middleware('throttle:12,1')
+        ->name('scan.checkin');
     Route::get('/scan/hasil/{code}', [DashboardController::class, 'scanResult'])->name('scan.result');
 
     Route::get('/riwayat', [DashboardController::class, 'history'])->name('reservation.history');
