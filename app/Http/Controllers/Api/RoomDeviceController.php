@@ -18,16 +18,16 @@ class RoomDeviceController extends Controller
 
         if ($configured === '') {
             abort(response()->json([
-                'message' => 'Device API key belum diatur.'
+                'message' => 'Device API key belum diatur.',
             ], 503));
         }
 
-        if (!hash_equals(
+        if (! hash_equals(
             $configured,
             (string) $request->header('X-Device-Key', '')
         )) {
             abort(response()->json([
-                'message' => 'Device API key tidak valid.'
+                'message' => 'Device API key tidak valid.',
             ], 401));
         }
     }
@@ -41,9 +41,9 @@ class RoomDeviceController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$room) {
+        if (! $room) {
             return response()->json([
-                'status' => 'NOT_FOUND'
+                'status' => 'NOT_FOUND',
             ], 404);
         }
 
@@ -52,7 +52,7 @@ class RoomDeviceController extends Controller
             ->where('status', 'ACTIVE')
             ->whereHas('reservation', function ($q) {
                 $q->where('status', 'CONFIRMED')
-                  ->where('end_at', '>', now());
+                    ->where('end_at', '>', now());
             })
             ->first();
 
@@ -79,12 +79,12 @@ class RoomDeviceController extends Controller
 
         // Auto check-out hanya boleh dikirim
         // jika PIR tidak mendeteksi gerakan.
-        if (!empty($data['auto_checkout']) &&
+        if (! empty($data['auto_checkout']) &&
             (($data['gerak'] ?? null) !== false ||
              empty($data['session_id']))) {
 
             return response()->json([
-                'message' => 'Data auto check-out tidak valid.'
+                'message' => 'Data auto check-out tidak valid.',
             ], 422);
         }
 
@@ -95,7 +95,7 @@ class RoomDeviceController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (!$room) {
+            if (! $room) {
                 return null;
             }
 
@@ -108,7 +108,7 @@ class RoomDeviceController extends Controller
 
             $autoCheckoutDone = false;
 
-            if (!empty($data['auto_checkout'])) {
+            if (! empty($data['auto_checkout'])) {
 
                 // Hanya boleh menutup sesi yang
                 // sebelumnya dibaca oleh ESP32.
@@ -148,9 +148,9 @@ class RoomDeviceController extends Controller
 
         }, 3);
 
-        if (!$result) {
+        if (! $result) {
             return response()->json([
-                'message' => 'Ruangan tidak ditemukan.'
+                'message' => 'Ruangan tidak ditemukan.',
             ], 404);
         }
 

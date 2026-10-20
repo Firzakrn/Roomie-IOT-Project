@@ -184,9 +184,14 @@ factories or `RefreshDatabase` usage for `Room`, `Reservation`, or
 `RoomSession`, so writing the first real feature tests means creating them
 plus an isolated test database first.
 
-`DatabaseSeeder` uses `create()` with fixed emails and room codes, so it is
-not idempotent; a second `db:seed` fails on unique constraints. Seeded
-accounts (password `password123`): `admin@kampus.ac.id` (admin),
+`DatabaseSeeder` uses `firstOrCreate()` for users and rooms, so it **is**
+idempotent and safe to re-run — existing passwords are never overwritten and,
+critically, existing `rooms.qr_token` values are **not** re-randomised (which
+would invalidate every printed door label). `HistorySeeder` is the one that
+would silently duplicate rows on a second run because `reservations` has no
+unique constraint; it therefore skips itself when the user already has history.
+To reseed history: `DELETE FROM room_sessions; DELETE FROM reservations;` then
+re-run. Seeded accounts (password `password123`): `admin@kampus.ac.id` (admin),
 `nadia@kampus.ac.id` (mahasiswa), plus three rooms with random 32-char QR
 tokens.
 

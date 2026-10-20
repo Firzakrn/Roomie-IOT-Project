@@ -7,6 +7,8 @@ use App\Models\Room;
 use App\Models\RoomSession;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -246,5 +248,33 @@ class DashboardController extends Controller
             ->get();
 
         return view('admin.qr-labels', compact('rooms'));
+    }
+
+    // Tambah ruang kelas baru (admin only)
+    public function storeRoom(Request $request)
+    {
+        abort_unless(auth()->user()->role === 'admin', 403);
+
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50', 'unique:rooms,code'],
+            'name' => ['required', 'string', 'max:255'],
+            'building' => ['required', 'string', 'max:50'],
+            'floor' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'capacity' => ['nullable', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        $room = Room::create([
+            'code' => $data['code'],
+            'name' => $data['name'],
+            'building' => $data['building'],
+            'floor' => $data['floor'] ?? null,
+            'capacity' => $data['capacity'] ?? 0,
+            'qr_token' => Str::random(32),
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('rooms.qr-labels')
+            ->with('success', "Ruangan {$room->name} ({$room->code}) berhasil ditambahkan.")
+            ->with('new_room_id', $room->id);
     }
 }

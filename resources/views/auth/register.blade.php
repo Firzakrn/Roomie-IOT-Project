@@ -31,7 +31,7 @@
 
         <x-ui.field name="email" label="Email" type="email" :maxlength="255"
                    autocomplete="email"
-                   placeholder="nama@kampus.ac.id" />
+                   placeholder="contoh@unesa.ac.id" />
 
         <x-ui.field name="password" label="Kata sandi" type="password" :minlength="8"
                    autocomplete="new-password"

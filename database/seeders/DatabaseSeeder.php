@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
     private function seedUsers(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@kampus.ac.id'],
+            ['email' => 'admin@unesa.ac.id'],
             [
                 'name' => 'Administrator Roomie',
                 'password' => 'password123',
@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
         );
 
         User::firstOrCreate(
-            ['email' => 'nadia@kampus.ac.id'],
+            ['email' => 'nadia@unesa.ac.id'],
             [
                 'name' => 'Nadia Putri',
                 'password' => 'password123',

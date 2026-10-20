@@ -34,8 +34,8 @@ class HistorySeeder extends Seeder
 
     public function run(): void
     {
-        $nadia = User::where('email', 'nadia@kampus.ac.id')->first();
-        $admin = User::where('email', 'admin@kampus.ac.id')->first();
+        $nadia = User::where('email', 'nadia@unesa.ac.id')->first();
+        $admin = User::where('email', 'admin@unesa.ac.id')->first();
         $rooms = Room::orderBy('code')->get();
 
         if (! $nadia || ! $admin || $rooms->isEmpty()) {

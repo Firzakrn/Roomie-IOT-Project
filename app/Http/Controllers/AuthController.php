@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Rules\UnesaEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -18,15 +19,16 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', new UnesaEmail],
             'password' => ['required', 'string'],
         ]);
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()->withErrors(['email' => 'Email atau kata sandi tidak cocok.'])->onlyInput('email');
         }
 
         $request->session()->regenerate();
+
         return redirect()->intended(route('dashboard'));
     }
 
@@ -39,7 +41,7 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email', new UnesaEmail],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
@@ -53,6 +55,7 @@ class AuthController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+
         return redirect()->route('dashboard')->with('success', 'Akun berhasil dibuat. Selamat datang di Roomie!');
     }
 
@@ -61,6 +64,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }
