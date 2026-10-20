@@ -21,8 +21,8 @@
     <div class="no-print mb-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Label QR ruang kelas</h1>
-                <p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Label QR ruang kelas</h1>
+                <p class="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                     Cetak satu label untuk setiap kelas, lalu tempel di pintu. Isi QR adalah
                     <strong class="font-semibold">token ruangan</strong>, bukan alamat web, jadi label
                     tetap berlaku walau tunnel berubah. Pengguna harus login ke Roomie lebih dulu
@@ -41,20 +41,20 @@
                 ['icon' => 'info', 'title' => 'Garis putus', 'body' => 'Bingkai label berubah jadi putus-putus saat dicetak. Potong mengikuti garis itu.'],
                 ['icon' => 'door', 'title' => 'Token tidak dicetak', 'body' => 'Kode QR tidak ditulis sebagai teks. Kalau ada yang menyalin token, check-in bisa dilakukan tanpa datang.'],
             ] as $tip)
-                <div class="rounded-xl border border-slate-200 bg-white p-4">
-                    <span class="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600" aria-hidden="true">
+                <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-roomie-surface">
+                    <span class="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" aria-hidden="true">
                         <x-ui.icon :name="$tip['icon']" :size="16" />
                     </span>
-                    <p class="mt-2.5 text-sm font-semibold text-slate-900">{{ $tip['title'] }}</p>
-                    <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ $tip['body'] }}</p>
+                    <p class="mt-2.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $tip['title'] }}</p>
+                    <p class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{{ $tip['body'] }}</p>
                 </div>
             @endforeach
         </div>
 
         {{-- Form Tambah Ruangan Baru --}}
-        <div class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-            <h2 class="text-lg font-semibold text-slate-900">Tambah Ruang Kelas Baru</h2>
-            <p class="mt-1 text-sm text-slate-500">Isi data ruangan, QR code akan otomatis digenerate.</p>
+        <div class="mt-6 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-roomie-surface">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Tambah Ruang Kelas Baru</h2>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Isi data ruangan, QR code akan otomatis digenerate.</p>
 
             <form method="POST" action="{{ route('rooms.store') }}" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 @csrf
@@ -104,8 +104,8 @@
         @forelse ($rooms as $room)
             <article class="roomie-label print-keep {{ $newRoomId === $room->id ? 'ring-4 ring-indigo-500' : '' }}">
                 <div>
-                    <h2 class="truncate text-[13pt] font-semibold leading-tight text-slate-900">{{ $room->name }}</h2>
-                    <p class="mt-1 truncate font-mono text-[8pt] text-slate-500">
+                    <h2 class="truncate text-[13pt] font-semibold leading-tight text-slate-900 dark:text-slate-100">{{ $room->name }}</h2>
+                    <p class="mt-1 truncate font-mono text-[8pt] text-slate-500 dark:text-slate-400">
                         {{ $room->code }} · Gedung {{ $room->building }} · Lantai {{ $room->floor ?? '-' }}
                     </p>
                 </div>
@@ -114,8 +114,8 @@
                      class="roomie-qr flex items-center justify-center"></div>
 
                 <div>
-                    <p class="text-[8pt] font-bold uppercase tracking-widest text-indigo-700">Scan lewat Roomie</p>
-                    <p class="mt-0.5 text-[7pt] leading-tight text-slate-500">
+                    <p class="text-[8pt] font-bold uppercase tracking-widest text-indigo-700 dark:text-indigo-400">Scan lewat Roomie</p>
+                    <p class="mt-0.5 text-[7pt] leading-tight text-slate-500 dark:text-slate-400">
                         Tempel di pintu kelas · arahkan kamera ke QR
                     </p>
                 </div>

@@ -819,6 +819,10 @@
         break-inside: avoid;
         page-break-inside: avoid;
     }
+    html.dark .roomie-label {
+        border-color: #334155;
+        background: #111827;
+    }
 
     @media print {
         html,
