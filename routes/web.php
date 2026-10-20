@@ -28,4 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/riwayat', [DashboardController::class, 'history'])->name('reservation.history');
     Route::get('/room/{code}/detail-modal', [DashboardController::class, 'getRoomModal'])->name('room.detail-modal');
     Route::get('/admin/qr-ruangan', [DashboardController::class, 'qrLabels'])->name('rooms.qr-labels');
+    Route::post('/admin/qr-ruangan', [DashboardController::class, 'storeRoom'])
+        ->middleware('throttle:10,1')
+        ->name('rooms.store');
 });

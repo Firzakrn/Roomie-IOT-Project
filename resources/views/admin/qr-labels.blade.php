@@ -50,11 +50,59 @@
                 </div>
             @endforeach
         </div>
+
+        {{-- Form Tambah Ruangan Baru --}}
+        <div class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+            <h2 class="text-lg font-semibold text-slate-900">Tambah Ruang Kelas Baru</h2>
+            <p class="mt-1 text-sm text-slate-500">Isi data ruangan, QR code akan otomatis digenerate.</p>
+
+            <form method="POST" action="{{ route('rooms.store') }}" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                @csrf
+
+                <div>
+                    <x-ui.field label="Kode Ruangan" name="code" required
+                        placeholder="A10.01.12"
+                        hint="Contoh: A10.01.12, LAB-01, RUANG-1 (maks 50 karakter)" />
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-2">
+                    <x-ui.field label="Nama Ruangan" name="name" required
+                        placeholder="Ruang Kuliah 101" />
+                </div>
+
+                <div>
+                    <x-ui.field label="Gedung" name="building" required
+                        placeholder="A10" />
+                </div>
+
+                <div>
+                    <x-ui.field label="Lantai" name="floor" type="number" min="1" max="50"
+                        placeholder="1 (opsional)"
+                        hint="Kosongkan jika tidak berlaku" />
+                </div>
+
+                <div>
+                    <x-ui.field label="Kapasitas" name="capacity" type="number" min="1" max="500"
+                        placeholder="40 (opsional)" />
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-5 flex justify-end">
+                    <x-ui.button type="submit" variant="primary" icon="plus">
+                        Tambah Ruangan
+                    </x-ui.button>
+                </div>
+            </form>
+
+            @if (session('errors'))
+                <x-ui.alert variant="error" :message="session('errors')->first()" />
+            @endif
+        </div>
     </div>
 
     <div class="roomie-label-sheet">
+        @php $newRoomId = session('new_room_id') @endphp
         @forelse ($rooms as $room)
-            <article class="roomie-label print-keep">
+            <article class="roomie-label print-keep {{ $newRoomId === $room->id ? 'ring-4 ring-indigo-500' : '' }}">
                 <div>
                     <h2 class="truncate text-[13pt] font-semibold leading-tight text-slate-900">{{ $room->name }}</h2>
                     <p class="mt-1 truncate font-mono text-[8pt] text-slate-500">
